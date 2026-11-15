@@ -355,7 +355,7 @@ input,textarea{-webkit-user-select:text;user-select:text}
     <div id="ddEvents"></div>
   </div>
 
-  <footer class="note">データはこの端末の中だけに保存されます<br>ときどきバックアップ保存をしておくと安心です<br><span id="appVer">たかしのカレンダー v9</span></footer>
+  <footer class="note">データはこの端末の中だけに保存されます<br>ときどきバックアップ保存をしておくと安心です<br><span id="appVer">たかしのカレンダー v10</span></footer>
 </div>
 
 <!-- 設定画面 -->
@@ -710,7 +710,19 @@ function changeMonth(delta){
 }
 $("prevBtn").addEventListener("click", ()=>changeMonth(-1));
 $("nextBtn").addEventListener("click", ()=>changeMonth(1));
-$("todayBtn").addEventListener("click", ()=>{ viewYear=today.getFullYear(); viewMonth=today.getMonth(); renderCalendar(); });
+$("todayBtn").addEventListener("click", ()=>{
+  viewYear = today.getFullYear(); viewMonth = today.getMonth();
+  selKey = todayKey; lastDayKey = todayKey;
+  renderCalendar();
+  requestAnimationFrame(()=>{
+    const nc = $("calGrid").querySelector('.day[data-key="'+todayKey+'"]');
+    const wk = document.querySelector(".week");
+    if(nc){
+      const y = nc.getBoundingClientRect().top + window.scrollY - (wk ? wk.offsetHeight : 0);
+      window.scrollTo({top: Math.max(0, y), behavior:"auto"});
+    }
+  });
+});
 /* 左右スワイプで月移動 */
 let swipeX = null, swipeY = null;
 const calCardEl = document.querySelector(".cal-card");
