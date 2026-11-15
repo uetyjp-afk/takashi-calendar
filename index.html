@@ -66,11 +66,11 @@ header.app p{margin:0;color:var(--sub);font-size:10.5px;font-weight:500}
 .cal-card{background:var(--card);border-radius:18px;box-shadow:var(--shadow);padding:6px 0 8px;touch-action:pan-y}
 .week{display:grid;grid-template-columns:repeat(7,1fr);text-align:center;font-size:12px;font-weight:800;color:var(--sub);padding:1px 0 4px;position:sticky;top:0;background:var(--card);z-index:6}
 .week div:nth-child(1){color:var(--sun)} .week div:nth-child(7){color:var(--sat)}
-.grid{display:grid;grid-template-columns:repeat(7,1fr);gap:0;border-top:1px solid #f0d7e2;border-left:1px solid #f0d7e2}
+.grid{display:grid;grid-template-columns:repeat(7,1fr);gap:0;border-top:1px solid #f0d7e2;border-left:1px solid #f0d7e2;overflow:hidden}
 .day{
   position:relative;min-height:88px;min-height:clamp(88px,11.8dvh,104px);border-radius:0;padding:4px 2px 3px;cursor:pointer;
   display:flex;flex-direction:column;align-items:center;background:#fff;border:none;border-right:1px solid #f0d7e2;border-bottom:1px solid #f0d7e2;
-  min-width:0;overflow:hidden;
+  min-width:0;
 }
 .day:active{transform:scale(.96)}
 .day .dnum{font-size:16px;font-weight:800;line-height:1.15}
@@ -211,8 +211,9 @@ footer.note{text-align:center;color:var(--sub);font-size:11px;margin-top:18px;fo
 
 /* 予定チップ */
 .day .evts{display:flex;flex-direction:column;gap:2px;width:100%;margin-top:1px}
-.evt{display:flex;align-items:center;gap:1px;touch-action:none;cursor:grab;font-size:11px;font-weight:800;line-height:1.3;padding:1px 2px;border-radius:4px;max-width:none;min-width:0;box-sizing:border-box;margin:0 -2px}
+.evt{display:flex;align-items:center;gap:1px;touch-action:none;cursor:grab;font-size:11px;font-weight:800;line-height:1.3;padding:1px 2px;border-radius:4px;max-width:none;min-width:0;box-sizing:border-box;margin:0 -2px;position:relative;z-index:2}
 .evt-tt{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0;flex:1}
+.evt.long .evt-tt{overflow:visible;text-overflow:clip;position:relative;z-index:3}
 .evt-ic{display:inline-flex;width:9.5px;height:9.5px;flex:none}
 .evt-ic svg{width:100%;height:100%}
 .evt-ic span{font-size:10px !important}
@@ -350,7 +351,7 @@ input,textarea{-webkit-user-select:text;user-select:text}
     <div id="ddEvents"></div>
   </div>
 
-  <footer class="note">データはこの端末の中だけに保存されます<br>ときどきバックアップ保存をしておくと安心です<br><span id="appVer">たかしのカレンダー v4</span></footer>
+  <footer class="note">データはこの端末の中だけに保存されます<br>ときどきバックアップ保存をしておくと安心です<br><span id="appVer">たかしのカレンダー v5</span></footer>
 </div>
 
 <!-- 設定画面 -->
@@ -474,7 +475,9 @@ function renderCalendar(){
     let evHtml = "";
     evs.slice(0,4).forEach(e=>{
       const col = e.color || "#f4528b";
-      evHtml += '<div class="evt'+(k>e.start?" cont-l":"")+(k<e.end?" cont-r":"")+'" style="background:'+col+';color:#fff"><span class="evt-tt">'+esc(e.title)+'</span></div>';
+      const showT = (k===e.start || d.getDay()===0);
+      const long = (showT && k<e.end) ? " long" : "";
+      evHtml += '<div class="evt'+(k>e.start?" cont-l":"")+(k<e.end?" cont-r":"")+long+'" style="background:'+col+';color:#fff"><span class="evt-tt">'+(showT ? esc(e.title) : "")+'</span></div>';
     });
     if(evs.length>4) evHtml += '<div class="evt-more">+'+(evs.length-4)+'件</div>';
     cell.dataset.key = k;
@@ -484,12 +487,14 @@ function renderCalendar(){
     cell.addEventListener("click", ()=>{
       if(Date.now()-suppressCellClick<400) return;
       selKey = k; lastDayKey = k; renderCalendar();
-      const nc = grid.querySelector('.day[data-key="'+k+'"]');
-      const wk = document.querySelector(".week");
-      if(nc){
-        const y = nc.getBoundingClientRect().top + window.scrollY - (wk ? wk.offsetHeight : 0);
-        window.scrollTo({top: Math.max(0, y), behavior:"smooth"});
-      }
+      requestAnimationFrame(()=>{
+        const nc = grid.querySelector('.day[data-key="'+k+'"]');
+        const wk = document.querySelector(".week");
+        if(nc){
+          const y = nc.getBoundingClientRect().top + window.scrollY - (wk ? wk.offsetHeight : 0);
+          window.scrollTo({top: Math.max(0, y), behavior:"auto"});
+        }
+      });
     });
     grid.appendChild(cell);
   }
