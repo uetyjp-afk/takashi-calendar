@@ -351,7 +351,7 @@ input,textarea{-webkit-user-select:text;user-select:text}
     <div id="ddEvents"></div>
   </div>
 
-  <footer class="note">データはこの端末の中だけに保存されます<br>ときどきバックアップ保存をしておくと安心です<br><span id="appVer">たかしのカレンダー v5</span></footer>
+  <footer class="note">データはこの端末の中だけに保存されます<br>ときどきバックアップ保存をしておくと安心です<br><span id="appVer">たかしのカレンダー v6</span></footer>
 </div>
 
 <!-- 設定画面 -->
@@ -393,15 +393,20 @@ input,textarea{-webkit-user-select:text;user-select:text}
     <h4>🎨 色</h4>
     <div class="color-picker" id="evColorPicker"></div>
     <h4>🗓 期間</h4>
-    <div class="ev-dates">
+    <div class="ev-dates" id="evDates">
       <input type="date" id="evStart"><span style="font-weight:800;color:var(--sub)">〜</span><input type="date" id="evEnd">
     </div>
     <div class="ev-allday">
       <span>終日</span>
       <label class="switch"><input type="checkbox" id="evAllDay" checked><span class="tr"></span></label>
     </div>
-    <div class="ev-dates" id="evTimes" style="display:none">
-      <input type="time" id="evStartTime"><span style="font-weight:800;color:var(--sub)">〜</span><input type="time" id="evEndTime">
+    <div id="evTimes" style="display:none">
+      <div class="ev-dates">
+        <input type="date" id="evDay">
+      </div>
+      <div class="ev-dates" style="margin-top:8px">
+        <input type="time" id="evStartTime"><span style="font-weight:800;color:var(--sub)">〜</span><input type="time" id="evEndTime">
+      </div>
     </div>
     <h4>📍 場所（地図）</h4>
     <input type="text" id="evPlace" class="ev-text" placeholder="例：広島大学病院、○○美容院" maxlength="60">
@@ -618,6 +623,7 @@ function openEventEditor(opts){
   $("evPlace").value = e ? (e.place || "") : "";
   $("evMemo").value = e ? (e.memo || "") : "";
   $("evAllDay").checked = e ? (e.allDay !== false) : true;
+  $("evDay").value = e ? e.start : (opts.date || todayKey);
   $("evStartTime").value = e && e.st ? e.st : "09:00";
   $("evEndTime").value = e && e.et ? e.et : "10:00";
   syncEvTimes();
@@ -627,8 +633,19 @@ function openEventEditor(opts){
   $("evOverlay").classList.add("on");
 }
 function closeEventEditor(){ $("evOverlay").classList.remove("on"); }
-function syncEvTimes(){ $("evTimes").style.display = $("evAllDay").checked ? "none" : ""; }
-$("evAllDay").addEventListener("change", syncEvTimes);
+function syncEvTimes(){
+  const allDay = $("evAllDay").checked;
+  $("evDates").style.display = allDay ? "" : "none";
+  $("evTimes").style.display = allDay ? "none" : "";
+}
+$("evAllDay").addEventListener("change", ()=>{
+  if($("evAllDay").checked){
+    if($("evDay").value){ $("evStart").value = $("evDay").value; $("evEnd").value = $("evDay").value; }
+  }else{
+    $("evDay").value = $("evStart").value || todayKey;
+  }
+  syncEvTimes();
+});
 function buildEvPickers(){
   $("evTitleIcon").innerHTML = iconHTML(evIcon) || '<span style="font-size:20px">📅</span>';
   const ip = $("evIconPicker"); ip.innerHTML = "";
@@ -655,11 +672,16 @@ $("evSaveBtn").addEventListener("click", ()=>{
   if(!title){ toast("タイトルを入れてね ✏"); $("evTitle").focus(); return; }
   const place = $("evPlace").value.trim();
   const memo = $("evMemo").value.trim();
-  let st = $("evStart").value || todayKey, en = $("evEnd").value || st;
-  if(en < st){ const t = st; st = en; en = t; }
   const allDay = $("evAllDay").checked;
+  let st, en;
+  if(allDay){
+    st = $("evStart").value || todayKey; en = $("evEnd").value || st;
+    if(en < st){ const t = st; st = en; en = t; }
+  }else{
+    st = en = $("evDay").value || todayKey;
+  }
   let stm = $("evStartTime").value || "09:00", etm = $("evEndTime").value || "10:00";
-  if(!allDay && en === st && etm <= stm){
+  if(!allDay && etm <= stm){
     const [h, m] = stm.split(":").map(Number);
     etm = h >= 23 ? "23:59" : String(h + 1).padStart(2, "0") + ":" + String(m).padStart(2, "0");
   }
@@ -703,9 +725,14 @@ function googleCalUrl(title, st, en, place, memo, allDay, stTime, etTime){
 $("evGoogleBtn").addEventListener("click", ()=>{
   const title = $("evTitle").value.trim();
   if(!title){ toast("タイトルを入れてね ✏"); $("evTitle").focus(); return; }
-  let st = $("evStart").value || todayKey, en = $("evEnd").value || st;
-  if(en < st){ const t = st; st = en; en = t; }
   const allDay = $("evAllDay").checked;
+  let st, en;
+  if(allDay){
+    st = $("evStart").value || todayKey; en = $("evEnd").value || st;
+    if(en < st){ const t = st; st = en; en = t; }
+  }else{
+    st = en = $("evDay").value || todayKey;
+  }
   window.open(googleCalUrl(title, st, en, $("evPlace").value.trim(), $("evMemo").value.trim(), allDay, allDay ? "" : ($("evStartTime").value || "09:00"), allDay ? "" : ($("evEndTime").value || "10:00")), "_blank");
 });
 $("icsBtn").addEventListener("click", ()=>{
