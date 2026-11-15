@@ -234,6 +234,7 @@ footer.note{text-align:center;color:var(--sub);font-size:11px;margin-top:18px;fo
 .day-detail .dd-head{display:flex;align-items:center;gap:9px;flex-wrap:wrap;margin-bottom:8px}
 .day-detail .dd-date{font-weight:800;font-size:15.5px}
 .dd-sub-line{font-size:12.5px;font-weight:700;color:var(--sub);margin:2px 0 2px}
+.dd-sub a{color:var(--sat);text-decoration:underline}
 .dd-sub-line:empty{display:none}
 .day-detail .dd-marks{font-size:12px;color:var(--sub);font-weight:700}
 .day-detail .ev-row{align-items:flex-start}
@@ -407,7 +408,7 @@ input,textarea{-webkit-user-select:text;user-select:text}
     <div id="ddEvents"></div>
   </div>
 
-  <footer class="note">データはこの端末の中だけに保存されます<br>ときどきバックアップ保存をしておくと安心です<br><span id="appVer">たかしのカレンダー v12</span></footer>
+  <footer class="note">データはこの端末の中だけに保存されます<br>ときどきバックアップ保存をしておくと安心です<br><span id="appVer">たかしのカレンダー v13</span></footer>
 </div>
 
 <!-- 設定画面 -->
@@ -744,7 +745,7 @@ function renderDayDetail(){
     row.innerHTML = '<span class="evt-ic-lg">'+iconHTML(e.icon)+'</span><span class="dd-main"><span class="tt"></span>'
       + '<span class="dd-sub">'+timeLabel(e)+'</span>'
       + (e.place ? '<span class="dd-sub">📍'+esc(e.place)+'</span>' : '')
-      + (e.memo ? '<span class="dd-sub">'+esc(e.memo)+'</span>' : '')
+      + (e.memo ? '<span class="dd-sub">'+linkify(e.memo)+'</span>' : '')
       + '</span>' + (pd ? '<span class="pd">'+pd+'</span>' : '');
     row.querySelector(".tt").textContent = e.title;
     row.addEventListener("click", ()=>openEventEditor({event:e}));
@@ -783,7 +784,7 @@ function buildEventRow(e){
   row.innerHTML = '<span class="evt-ic-lg">' + iconHTML(e.icon) + '</span><span class="dd-main"><span class="tt"></span>'
     + '<span class="dd-sub">' + timeLabel(e) + '</span>'
     + (e.place ? '<span class="dd-sub">📍' + esc(e.place) + '</span>' : '')
-    + (e.memo ? '<span class="dd-sub">' + esc(e.memo) + '</span>' : '')
+    + (e.memo ? '<span class="dd-sub">' + linkify(e.memo) + '</span>' : '')
     + '</span>' + (pd ? '<span class="pd">' + pd + '</span>' : '');
   row.querySelector(".tt").textContent = e.title;
   row.addEventListener("click", ()=>openEventEditor({event:e}));
@@ -952,6 +953,15 @@ const STAMPS = [
 ];
 function stampOf(id){ return STAMPS.find(x=>x.id===id); }
 function esc(t){ return String(t||"").replace(/[&<>"']/g, m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[m])); }
+/* メモの中のURL・電話番号をタップできるリンクにする */
+function linkify(text){
+  return String(text || "").split(/(https?:\/\/[^\s<、。・「」『』（）【】)]+)/g).map((part, i)=>{
+    if(i % 2 === 1){ const u = esc(part); return '<a href="' + u + '" target="_blank" rel="noopener">' + u + '</a>'; }
+    return esc(part).replace(/(?<!\d)(0\d{1,4}-\d{1,4}-\d{4}|0\d{9,10})(?!\d)/g, '<a href="tel:$1">$1</a>');
+  }).join("");
+}
+/* メモのリンクをタップしたときは、行をタップした扱いにしない */
+document.addEventListener("click", e=>{ if(e.target.closest && e.target.closest(".dd-sub a, .dd-memo a, .diary-text a")) e.stopPropagation(); }, true);
 function iconHTML(id){
   const st = stampOf(id); if(st) return st.svg;
   return '';
