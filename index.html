@@ -355,7 +355,7 @@ input,textarea{-webkit-user-select:text;user-select:text}
     <div id="ddEvents"></div>
   </div>
 
-  <footer class="note">データはこの端末の中だけに保存されます<br>ときどきバックアップ保存をしておくと安心です<br><span id="appVer">たかしのカレンダー v8</span></footer>
+  <footer class="note">データはこの端末の中だけに保存されます<br>ときどきバックアップ保存をしておくと安心です<br><span id="appVer">たかしのカレンダー v9</span></footer>
 </div>
 
 <!-- 設定画面 -->
@@ -376,6 +376,7 @@ input,textarea{-webkit-user-select:text;user-select:text}
     <div class="picker-lbl" style="margin-top:14px">🌦 天気の地域</div>
     <select id="weatherPlaceSel" class="ev-text" style="margin-top:6px"></select>
     <p class="hint">選んだ地域の天気を、日の詳細に出します（16日先まで）。</p>
+    <p class="hint" id="storageInfo"></p>
   </div>
     <div class="sheet-btns">
       <button class="close" id="closeSettingsBtn">閉じる ♡</button>
@@ -437,20 +438,82 @@ const KEY = "takashi-calendar-v1";
 const SYMBOLS = ["★","♥","●","◆","▲","♪","✿","☀","☂","✈","✚","♨","🍰","🛍","💇","🐾","🌙","🎁","🏥","💊"];
 const COLORS  = ["#f4528b","#ff8c42","#f2b705","#2fbfa5","#4a7dd4","#9b8cf2","#e0567a","#8a6d4b","#5aa469","#888"];
 
-let state = load();
-function load(){
+let state = normalize({ settings:{ theme:"blue" }, events:[] });
+let idb = null; // IndexedDBが使えるときだけ入る（nullならlocalStorage動作）
+
+function lsLoad(){
   try{
     const raw = localStorage.getItem(KEY);
     if(raw){ const s = JSON.parse(raw); if(s && s.events) return normalize(s); }
   }catch(e){}
-  return normalize({ settings:{ theme:"blue" }, events:[] });
+  return null;
+}
+function idbOpen(){
+  return new Promise(res=>{
+    if(!("indexedDB" in window)) return res(null);
+    let req;
+    try{ req = indexedDB.open("takashi-calendar", 1); }catch(e){ return res(null); }
+    req.onupgradeneeded = ()=>{ try{ req.result.createObjectStore("kv", {keyPath:"k"}); }catch(e){} };
+    req.onsuccess = ()=>res(req.result);
+    req.onerror = ()=>res(null);
+    req.onblocked = ()=>res(null);
+  });
+}
+function idbGet(k){
+  return new Promise(res=>{
+    if(!idb) return res(undefined);
+    try{
+      const r = idb.transaction("kv", "readonly").objectStore("kv").get(k);
+      r.onsuccess = ()=>res(r.result ? r.result.v : undefined);
+      r.onerror = ()=>res(undefined);
+    }catch(e){ res(undefined); }
+  });
+}
+function idbPut(k, v){
+  return new Promise(res=>{
+    if(!idb) return res(false);
+    try{
+      const tx = idb.transaction("kv", "readwrite");
+      tx.objectStore("kv").put({k: k, v: v});
+      tx.oncomplete = ()=>res(true);
+      tx.onerror = ()=>res(false);
+    }catch(e){ res(false); }
+  });
+}
+async function initData(){
+  idb = await idbOpen();
+  if(idb){
+    const saved = await idbGet("state");
+    if(typeof saved === "string"){
+      try{ const s = JSON.parse(saved); if(s && s.events){ state = normalize(s); return; } }catch(e){}
+    }
+    // 初回：localStorageの既存データをIndexedDBへ移行する（元のデータは消さない）
+    const old = lsLoad();
+    if(old){
+      state = old;
+      const okWrite = await idbPut("state", JSON.stringify(old));
+      let okVerify = false;
+      if(okWrite){
+        const back = await idbGet("state");
+        try{ okVerify = !!back && JSON.parse(back).events.length === old.events.length; }catch(e){}
+      }
+      if(!okVerify) idb = null; // 照合できなければ従来方式のまま使う
+    }
+  }else{
+    const old = lsLoad();
+    if(old) state = old;
+  }
 }
 function normalize(s){
   s.settings = Object.assign({theme:"blue", weatherPlace:"広島市"}, s.settings||{});
   s.events = s.events||[];
   return s;
 }
-function save(){ localStorage.setItem(KEY, JSON.stringify(state)); }
+function save(){
+  const json = JSON.stringify(state);
+  try{ localStorage.setItem(KEY, json); }catch(e){} // 保険として同じ内容を書き続ける
+  if(idb) idbPut("state", json);
+}
 
 /* 日付ユーティリティ（ローカル日付で統一） */
 function dkey(d){ return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0"); }
@@ -1155,13 +1218,17 @@ function toast(msg){
 
 const wpSel = $("weatherPlaceSel");
 PLACES.forEach(pl=>{ const o = document.createElement("option"); o.value = pl.name; o.textContent = pl.name; wpSel.appendChild(o); });
-wpSel.value = state.settings.weatherPlace || "広島市";
 wpSel.addEventListener("change", ()=>{ state.settings.weatherPlace = wpSel.value; save(); weatherData = null; loadWeather(); toast("天気の地域を " + wpSel.value + " にしました 🌦"); });
 
-buildThemePicker();
-applyTheme(state.settings.theme||"blue");
-renderAll();
-loadWeather();
+(async ()=>{
+  await initData();
+  wpSel.value = state.settings.weatherPlace || "広島市";
+  $("storageInfo").textContent = idb ? "データの保存先：IndexedDB（この端末の中）" : "データの保存先：ブラウザの保存領域（この端末の中）";
+  buildThemePicker();
+  applyTheme(state.settings.theme || "blue");
+  renderAll();
+  loadWeather();
+})();
 if("serviceWorker" in navigator){ navigator.serviceWorker.register("sw.js").catch(()=>{}); }
 </script>
 </body>
