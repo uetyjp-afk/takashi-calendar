@@ -211,9 +211,10 @@ footer.note{text-align:center;color:var(--sub);font-size:11px;margin-top:18px;fo
 
 /* 予定チップ */
 .day .evts{display:flex;flex-direction:column;gap:2px;width:100%;margin-top:1px}
-.evt{display:flex;align-items:center;gap:1px;touch-action:none;cursor:grab;font-size:11px;font-weight:800;line-height:1.3;padding:1px 2px;border-radius:4px;max-width:none;min-width:0;box-sizing:border-box;margin:0 -2px;position:relative;z-index:2}
+.evt{display:flex;align-items:center;gap:1px;touch-action:none;cursor:grab;font-size:11px;font-weight:800;line-height:1.3;padding:1px 2px;border-radius:4px;max-width:none;min-width:0;box-sizing:border-box;margin:0 -2px;position:relative;z-index:2;min-height:17px}
 .evt-tt{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0;flex:1}
-.evt.long .evt-tt{overflow:visible;text-overflow:clip;position:relative;z-index:3}
+.evt.long{z-index:4}
+.evt.long .evt-tt{position:absolute;left:3px;top:50%;transform:translateY(-50%);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:none}
 .evt-ic{display:inline-flex;width:9.5px;height:9.5px;flex:none}
 .evt-ic svg{width:100%;height:100%}
 .evt-ic span{font-size:10px !important}
@@ -351,7 +352,7 @@ input,textarea{-webkit-user-select:text;user-select:text}
     <div id="ddEvents"></div>
   </div>
 
-  <footer class="note">データはこの端末の中だけに保存されます<br>ときどきバックアップ保存をしておくと安心です<br><span id="appVer">たかしのカレンダー v6</span></footer>
+  <footer class="note">データはこの端末の中だけに保存されます<br>ときどきバックアップ保存をしておくと安心です<br><span id="appVer">たかしのカレンダー v7</span></footer>
 </div>
 
 <!-- 設定画面 -->
@@ -482,7 +483,20 @@ function renderCalendar(){
       const col = e.color || "#f4528b";
       const showT = (k===e.start || d.getDay()===0);
       const long = (showT && k<e.end) ? " long" : "";
-      evHtml += '<div class="evt'+(k>e.start?" cont-l":"")+(k<e.end?" cont-r":"")+long+'" style="background:'+col+';color:#fff"><span class="evt-tt">'+(showT ? esc(e.title) : "")+'</span></div>';
+      let tt = "";
+      if(showT){
+        if(long){
+          const rowEndK = dkey(addDays(d, 6 - d.getDay()));
+          const spanEndK = e.end < rowEndK ? e.end : rowEndK;
+          const span = Math.round((parseKey(spanEndK) - d) / 86400000) + 1;
+          tt = '<span class="evt-tt" style="width:calc(' + span + '00% + ' + ((span - 1) * 6) + 'px)">' + esc(e.title) + '</span>';
+        }else{
+          tt = '<span class="evt-tt">' + esc(e.title) + '</span>';
+        }
+      }else{
+        tt = '<span class="evt-tt"></span>';
+      }
+      evHtml += '<div class="evt'+(k>e.start?" cont-l":"")+(k<e.end?" cont-r":"")+long+'" style="background:'+col+';color:#fff">' + tt + '</div>';
     });
     if(evs.length>4) evHtml += '<div class="evt-more">+'+(evs.length-4)+'件</div>';
     cell.dataset.key = k;
