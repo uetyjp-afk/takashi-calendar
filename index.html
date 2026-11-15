@@ -241,6 +241,32 @@ footer.note{text-align:center;color:var(--sub);font-size:11px;margin-top:18px;fo
 .day-detail .dd-main .tt{font-weight:800;font-size:13.5px;white-space:normal;overflow-wrap:anywhere;line-height:1.4}
 .day-detail .dd-sub{font-size:11.5px;color:var(--sub);font-weight:600;overflow-wrap:anywhere;line-height:1.4}
 .day-detail .dd-none{font-size:12.5px;color:var(--sub);font-weight:500;padding:1px 0 7px}
+/* 表示切り替え（月・週・日・リスト） */
+.view-switch{display:flex;gap:6px;margin:2px 2px 8px}
+.view-switch button{flex:1;padding:7px 0;border-radius:999px;border:2px solid var(--line);background:#fff;font-weight:800;font-size:13px;color:var(--sub);cursor:pointer;font-family:inherit}
+.view-switch button.on{background:var(--pink-deep);border-color:var(--pink-deep);color:#fff}
+.month-nav.nav-hidden .nav-btn{visibility:hidden}
+.week-grid{display:grid;grid-template-columns:repeat(7,1fr);padding:2px 2px 4px}
+.wk-col{border-left:1px solid var(--line);padding:4px 2px 8px;min-height:168px;cursor:pointer}
+.wk-col:first-child{border-left:none}
+.wk-col.sel{background:var(--pink-bg)}
+.wk-head{text-align:center;margin-bottom:4px}
+.wk-dow{font-size:10px;color:var(--sub);font-weight:700}
+.wk-num{font-size:15px;font-weight:800;width:26px;height:26px;line-height:26px;margin:1px auto 0;border-radius:50%}
+.wk-col.sun .wk-num{color:var(--sun)} .wk-col.sat .wk-num{color:var(--sat)} .wk-col.hol .wk-num{color:var(--sun)}
+.wk-col.today .wk-num{background:var(--pink-deep);color:#fff}
+.wk-ev{font-size:10px;font-weight:700;border-radius:5px;padding:2px 3px;margin:2px 1px;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:pointer;line-height:1.35}
+.wk-ev.timed{background:#fff;color:var(--ink);border:1px solid var(--line);white-space:normal;overflow-wrap:anywhere}
+.wk-ev.timed .tm{color:var(--sub);font-size:9px;display:block}
+.day-big-date{font-size:17px;font-weight:800;padding:8px 10px 0}
+#dayCard .dd-sub-line,#listCard .dd-sub-line{padding:0 10px}
+#dayCard .ev-row,#listBody .ev-row{align-items:flex-start;margin:0 6px 6px}
+#dayCard .dd-main,#listBody .dd-main{flex:1;min-width:0;display:flex;flex-direction:column;gap:1px}
+#dayCard .dd-main .tt,#listBody .dd-main .tt{font-weight:800;font-size:13.5px;white-space:normal;overflow-wrap:anywhere;line-height:1.4}
+#dayCard .dd-sub,#listBody .dd-sub{font-size:11.5px;color:var(--sub);font-weight:600;overflow-wrap:anywhere;line-height:1.4}
+#dayCard .dd-none,#listBody .dd-none{font-size:12.5px;color:var(--sub);font-weight:500;padding:8px 10px}
+.list-day-head{font-weight:800;font-size:13px;padding:10px 10px 4px}
+#listSearch{margin:8px 6px 2px;width:calc(100% - 12px)}
 .day-detail .dd-memo{font-size:12.5px;font-weight:600;background:var(--pink-bg);border-radius:10px;padding:7px 10px;margin:0 0 6px;overflow-wrap:anywhere;line-height:1.5}
 /* ToDo */
 .mark.todo-mk{color:#9b8cf2;font-size:13px}
@@ -342,10 +368,36 @@ input,textarea{-webkit-user-select:text;user-select:text}
     <button class="nav-btn" id="nextBtn" aria-label="次の月">›</button>
   </div>
 
+  <!-- 表示切り替え -->
+  <div class="view-switch" id="viewSwitch">
+    <button data-view="month" class="on">月</button>
+    <button data-view="week">週</button>
+    <button data-view="day">日</button>
+    <button data-view="list">リスト</button>
+  </div>
+
   <!-- カレンダー -->
-  <div class="cal-card">
+  <div class="cal-card" id="monthCard">
     <div class="week"><div>日</div><div>月</div><div>火</div><div>水</div><div>木</div><div>金</div><div>土</div></div>
     <div class="grid" id="calGrid"></div>
+  </div>
+
+  <!-- 週表示 -->
+  <div class="cal-card" id="weekCard" style="display:none">
+    <div class="week-grid" id="weekGrid"></div>
+  </div>
+
+  <!-- 日表示 -->
+  <div class="cal-card" id="dayCard" style="display:none">
+    <div class="day-big-date" id="dayBigDate">-</div>
+    <div class="dd-sub-line" id="dayBigSub"></div>
+    <div id="dayBigEvents"></div>
+  </div>
+
+  <!-- リスト表示 -->
+  <div class="cal-card" id="listCard" style="display:none">
+    <input type="search" id="listSearch" class="ev-text" placeholder="🔍 予定を検索（タイトル・場所・メモ）">
+    <div id="listBody"></div>
   </div>
 
   <!-- 選んだ日の予定（全文） -->
@@ -355,7 +407,7 @@ input,textarea{-webkit-user-select:text;user-select:text}
     <div id="ddEvents"></div>
   </div>
 
-  <footer class="note">データはこの端末の中だけに保存されます<br>ときどきバックアップ保存をしておくと安心です<br><span id="appVer">たかしのカレンダー v10</span></footer>
+  <footer class="note">データはこの端末の中だけに保存されます<br>ときどきバックアップ保存をしておくと安心です<br><span id="appVer">たかしのカレンダー v11</span></footer>
 </div>
 
 <!-- 設定画面 -->
@@ -505,7 +557,7 @@ async function initData(){
   }
 }
 function normalize(s){
-  s.settings = Object.assign({theme:"blue", weatherPlace:"広島市"}, s.settings||{});
+  s.settings = Object.assign({theme:"blue", weatherPlace:"広島市", view:"month"}, s.settings||{});
   s.events = s.events||[];
   return s;
 }
@@ -587,7 +639,7 @@ async function loadWeather(){
   const place = PLACES.find(x=>x.name === (state.settings.weatherPlace || "広島市")) || PLACES[5];
   try{
     const c = JSON.parse(localStorage.getItem("takashi-calendar-weather") || "null");
-    if(c && c.place === place.name && c.date === todayKey && c.data){ weatherData = c.data; renderDayDetail(); return; }
+    if(c && c.place === place.name && c.date === todayKey && c.data){ weatherData = c.data; renderDayDetail(); if(curView() === "day") renderDayView(); return; }
   }catch(e){}
   try{
     const url = "https://api.open-meteo.com/v1/forecast?latitude=" + place.lat + "&longitude=" + place.lon
@@ -601,7 +653,7 @@ async function loadWeather(){
     if(Object.keys(data).length){
       weatherData = data;
       try{ localStorage.setItem("takashi-calendar-weather", JSON.stringify({place: place.name, date: todayKey, data})); }catch(e){}
-      renderDayDetail();
+      renderDayDetail(); if(curView() === "day") renderDayView();
     }
   }catch(e){ /* オフライン等のときは天気を出さない */ }
 }
@@ -699,7 +751,120 @@ function renderDayDetail(){
     box.appendChild(row);
   });
 }
-function renderAll(){ renderCalendar(); buildTray(); }
+function curView(){ return state.settings.view || "month"; }
+function renderAll(){
+  const mode = curView();
+  document.querySelectorAll("#viewSwitch button").forEach(b=>b.classList.toggle("on", b.dataset.view === mode));
+  $("monthCard").style.display = mode === "month" ? "" : "none";
+  $("weekCard").style.display = mode === "week" ? "" : "none";
+  $("dayCard").style.display = mode === "day" ? "" : "none";
+  $("listCard").style.display = mode === "list" ? "" : "none";
+  $("dayDetail").style.display = (mode === "month" || mode === "week") ? "" : "none";
+  document.querySelector(".month-nav").classList.toggle("nav-hidden", mode === "list");
+  if(mode === "month") renderCalendar();
+  else if(mode === "week") renderWeek();
+  else if(mode === "day") renderDayView();
+  else renderList();
+  buildTray();
+}
+function setView(mode){
+  state.settings.view = mode; save();
+  renderAll();
+}
+$("viewSwitch").addEventListener("click", e=>{
+  const b = e.target.closest("button[data-view]");
+  if(b) setView(b.dataset.view);
+});
+
+/* 予定の行（日表示・リスト表示で共用。詳細欄と同じ形） */
+function buildEventRow(e){
+  const row = document.createElement("div"); row.className = "ev-row";
+  const pd = e.start === e.end ? "" : fmtJP(parseKey(e.start)) + "〜" + fmtJP(parseKey(e.end));
+  row.innerHTML = '<span class="evt-ic-lg">' + iconHTML(e.icon) + '</span><span class="dd-main"><span class="tt"></span>'
+    + '<span class="dd-sub">' + timeLabel(e) + '</span>'
+    + (e.place ? '<span class="dd-sub">📍' + esc(e.place) + '</span>' : '')
+    + (e.memo ? '<span class="dd-sub">' + esc(e.memo) + '</span>' : '')
+    + '</span>' + (pd ? '<span class="pd">' + pd + '</span>' : '');
+  row.querySelector(".tt").textContent = e.title;
+  row.addEventListener("click", ()=>openEventEditor({event:e}));
+  return row;
+}
+
+/* 週表示 */
+function renderWeek(){
+  const sel = parseKey(selKey);
+  const start = addDays(sel, -sel.getDay());
+  const end = addDays(start, 6);
+  $("monthTitle").textContent = fmtJP(start) + "〜" + (end.getMonth() === start.getMonth() ? end.getDate() + "日" : fmtJP(end));
+  const grid = $("weekGrid"); grid.innerHTML = "";
+  for(let i = 0; i < 7; i++){
+    const d = addDays(start, i), k = dkey(d);
+    const col = document.createElement("div");
+    col.className = "wk-col" + (d.getDay() === 0 ? " sun" : d.getDay() === 6 ? " sat" : "") + (k === todayKey ? " today" : "") + (k === selKey ? " sel" : "") + (holidayName(k) ? " hol" : "");
+    col.innerHTML = '<div class="wk-head"><div class="wk-dow">' + DOW[d.getDay()] + '</div><div class="wk-num">' + d.getDate() + '</div></div>';
+    eventsOn(k).forEach(e=>{
+      const ev = document.createElement("div");
+      if(e.allDay === false && e.start === e.end){
+        ev.className = "wk-ev timed";
+        ev.innerHTML = '<span class="tm">' + esc(e.st || "") + '</span>' + esc(e.title);
+      }else{
+        ev.className = "wk-ev";
+        ev.style.background = e.color;
+        ev.textContent = e.title;
+      }
+      ev.addEventListener("click", ev2=>{ ev2.stopPropagation(); openEventEditor({event:e}); });
+      col.appendChild(ev);
+    });
+    col.addEventListener("click", ()=>{ selKey = k; lastDayKey = k; viewYear = d.getFullYear(); viewMonth = d.getMonth(); renderAll(); });
+    grid.appendChild(col);
+  }
+  renderDayDetail();
+}
+
+/* 日表示 */
+function renderDayView(){
+  const d = parseKey(selKey);
+  const label = (d.getMonth()+1) + "月" + d.getDate() + "日（" + DOW[d.getDay()] + "）";
+  $("monthTitle").textContent = label;
+  $("dayBigDate").textContent = label;
+  const hol = holidayName(selKey);
+  const w = weatherData && weatherData[selKey];
+  let sub = "";
+  if(hol) sub += "🎌 " + hol;
+  if(w){ const wi = weatherInfo(w.code); sub += (sub ? "　" : "") + wi[0] + " " + wi[1] + "　最高" + w.tmax + "℃ / 最低" + w.tmin + "℃" + (w.pop != null ? "　☂️ " + w.pop + "%" : ""); }
+  $("dayBigSub").textContent = sub;
+  const box = $("dayBigEvents"); box.innerHTML = "";
+  const evs = eventsOn(selKey);
+  if(!evs.length) box.innerHTML = '<div class="dd-none">この日の予定はありません</div>';
+  evs.forEach(e=>box.appendChild(buildEventRow(e)));
+}
+
+/* リスト表示 */
+let listQuery = "";
+function renderList(){
+  $("monthTitle").textContent = "予定リスト";
+  const q = listQuery.trim().toLowerCase();
+  let evs = (state.events || []).filter(e => q
+    ? (e.title + " " + (e.place || "") + " " + (e.memo || "")).toLowerCase().includes(q)
+    : e.end >= todayKey);
+  evs = evs.slice().sort((a, b)=> a.start < b.start ? -1 : a.start > b.start ? 1 : ((a.st || "") < (b.st || "") ? -1 : 1));
+  const body = $("listBody"); body.innerHTML = "";
+  if(!evs.length){ body.innerHTML = '<div class="dd-none">' + (q ? "見つかりませんでした" : "これからの予定はありません") + '</div>'; return; }
+  let lastDay = "";
+  evs.forEach(e=>{
+    if(e.start !== lastDay){
+      lastDay = e.start;
+      const d = parseKey(e.start);
+      const hd = document.createElement("div");
+      hd.className = "list-day-head";
+      const hol = holidayName(e.start);
+      hd.textContent = (d.getMonth()+1) + "月" + d.getDate() + "日（" + DOW[d.getDay()] + "）" + (hol ? "　🎌 " + hol : "") + (e.start === todayKey ? "　今日" : "");
+      body.appendChild(hd);
+    }
+    body.appendChild(buildEventRow(e));
+  });
+}
+$("listSearch").addEventListener("input", e=>{ listQuery = e.target.value; renderList(); });
 
 /* 日モーダル */
 function changeMonth(delta){
@@ -708,11 +873,21 @@ function changeMonth(delta){
   if(viewMonth>11){ viewMonth=0; viewYear++; }
   renderCalendar();
 }
-$("prevBtn").addEventListener("click", ()=>changeMonth(-1));
-$("nextBtn").addEventListener("click", ()=>changeMonth(1));
+function changePeriod(delta){
+  const mode = curView();
+  if(mode === "month"){ changeMonth(delta); return; }
+  if(mode === "list") return;
+  const d = addDays(parseKey(selKey), delta * (mode === "week" ? 7 : 1));
+  selKey = dkey(d); lastDayKey = selKey;
+  viewYear = d.getFullYear(); viewMonth = d.getMonth();
+  renderAll();
+}
+$("prevBtn").addEventListener("click", ()=>changePeriod(-1));
+$("nextBtn").addEventListener("click", ()=>changePeriod(1));
 $("todayBtn").addEventListener("click", ()=>{
   viewYear = today.getFullYear(); viewMonth = today.getMonth();
   selKey = todayKey; lastDayKey = todayKey;
+  if(curView() !== "month"){ renderAll(); return; }
   renderCalendar();
   requestAnimationFrame(()=>{
     const nc = $("calGrid").querySelector('.day[data-key="'+todayKey+'"]');
@@ -736,6 +911,18 @@ calCardEl.addEventListener("touchend", e=>{
   swipeX = swipeY = null;
   if(Math.abs(dx) > 55 && Math.abs(dx) > Math.abs(dy)*1.6) changeMonth(dx < 0 ? 1 : -1);
 }, {passive:true});
+/* 週・日表示でも左右スワイプで移動 */
+[$("weekCard"), $("dayCard")].forEach(el=>{
+  let sx = null, sy = null;
+  el.addEventListener("touchstart", e=>{ if(e.touches.length===1){ sx = e.touches[0].clientX; sy = e.touches[0].clientY; } }, {passive:true});
+  el.addEventListener("touchend", e=>{
+    if(sx===null) return;
+    const t = e.changedTouches[0];
+    const dx = t.clientX - sx, dy = t.clientY - sy;
+    sx = sy = null;
+    if(Math.abs(dx) > 55 && Math.abs(dx) > Math.abs(dy)*1.6) changePeriod(dx < 0 ? 1 : -1);
+  }, {passive:true});
+});
 
 /* スイッチ */
 
