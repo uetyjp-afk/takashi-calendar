@@ -340,13 +340,6 @@ input,textarea{-webkit-user-select:text;user-select:text}
   <div class="cal-card">
     <div class="week"><div>日</div><div>月</div><div>火</div><div>水</div><div>木</div><div>金</div><div>土</div></div>
     <div class="grid" id="calGrid"></div>
-    <div class="legend">
-      <span><b style="color:#ff9dbd">△</b> 生理・少ない</span>
-      <span><b style="color:#ff7aa8">●</b> ふつう</span>
-      <span><b style="color:#e5395f">✕</b> 多い</span>
-      <span><b style="color:#2fbfa5">●</b> 有給</span>
-      <span><b style="color:#7ed3c0">◐</b> 半日有給</span>
-    </div>
   </div>
 
   <!-- 選んだ日の予定（全文） -->
@@ -355,7 +348,7 @@ input,textarea{-webkit-user-select:text;user-select:text}
     <div id="ddEvents"></div>
   </div>
 
-  <footer class="note">データはこの端末の中だけに保存されます<br>ときどきバックアップ保存をしておくと安心です<br><span id="appVer">たかしのカレンダー v1</span></footer>
+  <footer class="note">データはこの端末の中だけに保存されます<br>ときどきバックアップ保存をしておくと安心です<br><span id="appVer">たかしのカレンダー v2</span></footer>
 </div>
 
 <!-- 設定画面 -->
@@ -926,7 +919,7 @@ function setAppIcon(t){
     const at=document.querySelector('link[rel="apple-touch-icon"]'); if(at) at.href=url;
     const fav=document.querySelector('link[rel="icon"]'); if(fav){ fav.href=url; fav.type="image/png"; }
     try{
-      const man={name:"みきのマイカレンダー",short_name:"マイカレンダー",start_url:"./index.html",display:"standalone",background_color:t.bg,theme_color:t.meta,description:"生理と有給をかわいく記録するカレンダー",icons:[{src:url,sizes:"512x512",type:"image/png",purpose:"any"}]};
+      const man={name:"たかしのカレンダー",short_name:"カレンダー",start_url:"./index.html",display:"standalone",background_color:t.bg,theme_color:t.meta,description:"予定をアイコンで記録するカレンダー",icons:[{src:url,sizes:"512x512",type:"image/png",purpose:"any"}]};
       const ml=document.querySelector('link[rel="manifest"]');
       if(ml) ml.href=URL.createObjectURL(new Blob([JSON.stringify(man)],{type:"application/json"}));
     }catch(e){}
