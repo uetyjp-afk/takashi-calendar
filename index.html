@@ -357,7 +357,7 @@ input,textarea{-webkit-user-select:text;user-select:text}
 <div class="wrap">
   <header class="app">
     <button id="settingsBtn" aria-label="設定を開く"><svg viewBox="0 0 48 48"><g fill="#a87f96"><rect x="21.6" y="2.5" width="4.8" height="11" rx="2.2"/><rect x="21.6" y="2.5" width="4.8" height="11" rx="2.2" transform="rotate(45 24 24)"/><rect x="21.6" y="2.5" width="4.8" height="11" rx="2.2" transform="rotate(90 24 24)"/><rect x="21.6" y="2.5" width="4.8" height="11" rx="2.2" transform="rotate(135 24 24)"/><rect x="21.6" y="2.5" width="4.8" height="11" rx="2.2" transform="rotate(180 24 24)"/><rect x="21.6" y="2.5" width="4.8" height="11" rx="2.2" transform="rotate(225 24 24)"/><rect x="21.6" y="2.5" width="4.8" height="11" rx="2.2" transform="rotate(270 24 24)"/><rect x="21.6" y="2.5" width="4.8" height="11" rx="2.2" transform="rotate(315 24 24)"/><circle cx="24" cy="24" r="12.2"/><circle cx="24" cy="24" r="5.4" fill="#ffffff"/></g></svg></button>
-    <h1>📅 たかしのカレンダー</h1>
+    <h1 id="appTitle">📅 たかしのカレンダー</h1>
     <p>アイコンで予定を、かんたん記録</p>
   </header>
 
@@ -408,7 +408,7 @@ input,textarea{-webkit-user-select:text;user-select:text}
     <div id="ddEvents"></div>
   </div>
 
-  <footer class="note">データはこの端末の中だけに保存されます<br>ときどきバックアップ保存をしておくと安心です<br><span id="appVer">たかしのカレンダー v13</span></footer>
+  <footer class="note">データはこの端末の中だけに保存されます<br>ときどきバックアップ保存をしておくと安心です<br><span id="appVer">たかしのカレンダー v14</span></footer>
 </div>
 
 <!-- 設定画面 -->
@@ -417,6 +417,8 @@ input,textarea{-webkit-user-select:text;user-select:text}
   <!-- 設定 -->
   <div class="section">
     <h3>⚙ 設定・バックアップ</h3>
+    <div class="picker-lbl" style="margin-top:14px">👤 あなたの名前（タイトルの「○○のカレンダー」の○○）</div>
+    <input type="text" id="ownerNameInput" class="ev-text" style="margin-top:6px" maxlength="12" placeholder="たかし">
     <div class="picker-lbl" style="margin-top:14px">🎨 カレンダーの色（アプリのアイコンの色も変わります）</div>
     <div class="color-picker" id="themePicker" style="margin-top:6px"></div>
     <p class="hint">ホーム画面のアイコンは、ホーム画面に追加し直すと新しい色になります。</p>
@@ -558,7 +560,7 @@ async function initData(){
   }
 }
 function normalize(s){
-  s.settings = Object.assign({theme:"blue", weatherPlace:"広島市", view:"month"}, s.settings||{});
+  s.settings = Object.assign({theme:"blue", weatherPlace:"広島市", view:"month", ownerName:"たかし"}, s.settings||{});
   s.events = s.events||[];
   return s;
 }
@@ -1387,7 +1389,7 @@ function setAppIcon(t){
     const at=document.querySelector('link[rel="apple-touch-icon"]'); if(at) at.href=url;
     const fav=document.querySelector('link[rel="icon"]'); if(fav){ fav.href=url; fav.type="image/png"; }
     try{
-      const man={name:"たかしのカレンダー",short_name:"カレンダー",start_url:"./index.html",display:"standalone",background_color:t.bg,theme_color:t.meta,description:"予定をアイコンで記録するカレンダー",icons:[{src:url,sizes:"512x512",type:"image/png",purpose:"any"}]};
+      const man={name:appName(),short_name:"カレンダー",start_url:"./index.html",display:"standalone",background_color:t.bg,theme_color:t.meta,description:"予定をアイコンで記録するカレンダー",icons:[{src:url,sizes:"512x512",type:"image/png",purpose:"any"}]};
       const ml=document.querySelector('link[rel="manifest"]');
       if(ml) ml.href=URL.createObjectURL(new Blob([JSON.stringify(man)],{type:"application/json"}));
     }catch(e){}
@@ -1425,6 +1427,23 @@ function toast(msg){
   clearTimeout(toastTimer); toastTimer=setTimeout(()=>t.classList.remove("on"),2300);
 }
 
+function appName(){ return (state.settings.ownerName || "たかし") + "のカレンダー"; }
+function applyOwnerName(){
+  const n = appName();
+  $("appTitle").textContent = "📅 " + n;
+  document.title = n;
+  $("appVer").textContent = n + " v14";
+  applyTheme(state.settings.theme || "blue");
+}
+const onInput = $("ownerNameInput");
+onInput.addEventListener("change", ()=>{
+  const v = onInput.value.trim();
+  state.settings.ownerName = v || "たかし";
+  onInput.value = state.settings.ownerName;
+  save(); applyOwnerName();
+  toast("タイトルを「" + appName() + "」にしました 👤");
+});
+
 const wpSel = $("weatherPlaceSel");
 PLACES.forEach(pl=>{ const o = document.createElement("option"); o.value = pl.name; o.textContent = pl.name; wpSel.appendChild(o); });
 wpSel.addEventListener("change", ()=>{ state.settings.weatherPlace = wpSel.value; save(); weatherData = null; loadWeather(); toast("天気の地域を " + wpSel.value + " にしました 🌦"); });
@@ -1432,9 +1451,10 @@ wpSel.addEventListener("change", ()=>{ state.settings.weatherPlace = wpSel.value
 (async ()=>{
   await initData();
   wpSel.value = state.settings.weatherPlace || "広島市";
+  onInput.value = state.settings.ownerName || "たかし";
   $("storageInfo").textContent = idb ? "データの保存先：IndexedDB（この端末の中）" : "データの保存先：ブラウザの保存領域（この端末の中）";
   buildThemePicker();
-  applyTheme(state.settings.theme || "blue");
+  applyOwnerName();
   renderAll();
   loadWeather();
 })();
