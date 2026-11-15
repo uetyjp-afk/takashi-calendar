@@ -74,7 +74,7 @@ header.app p{margin:0;color:var(--sub);font-size:10.5px;font-weight:500}
 }
 .day:active{transform:scale(.96)}
 .day .dnum{font-size:16px;font-weight:800;line-height:1.15}
-.day.sun .dnum{color:var(--sun)} .day.sat .dnum{color:var(--sat)}
+.day.sun .dnum{color:var(--sun)} .day.sat .dnum{color:var(--sat)} .day.hol .dnum{color:var(--sun)}
 .day.other{opacity:.45;background:#faf5f6}
 .day.today{box-shadow:inset 0 0 0 2px var(--pink)}
 .day.today .dnum{background:var(--pink);color:#fff;border-radius:50%;width:22px;height:22px;display:flex;align-items:center;justify-content:center}
@@ -233,6 +233,8 @@ footer.note{text-align:center;color:var(--sub);font-size:11px;margin-top:18px;fo
 .day-detail{margin-top:12px;background:var(--card);border-radius:18px;box-shadow:var(--shadow);padding:12px 14px 8px}
 .day-detail .dd-head{display:flex;align-items:center;gap:9px;flex-wrap:wrap;margin-bottom:8px}
 .day-detail .dd-date{font-weight:800;font-size:15.5px}
+.dd-sub-line{font-size:12.5px;font-weight:700;color:var(--sub);margin:2px 0 2px}
+.dd-sub-line:empty{display:none}
 .day-detail .dd-marks{font-size:12px;color:var(--sub);font-weight:700}
 .day-detail .ev-row{align-items:flex-start}
 .day-detail .dd-main{flex:1;min-width:0;display:flex;flex-direction:column;gap:1px}
@@ -349,10 +351,11 @@ input,textarea{-webkit-user-select:text;user-select:text}
   <!-- 選んだ日の予定（全文） -->
   <div class="day-detail" id="dayDetail">
     <div class="dd-head"><span class="dd-date" id="ddDate">-</span></div>
+    <div class="dd-sub-line" id="ddSub"></div>
     <div id="ddEvents"></div>
   </div>
 
-  <footer class="note">データはこの端末の中だけに保存されます<br>ときどきバックアップ保存をしておくと安心です<br><span id="appVer">たかしのカレンダー v7</span></footer>
+  <footer class="note">データはこの端末の中だけに保存されます<br>ときどきバックアップ保存をしておくと安心です<br><span id="appVer">たかしのカレンダー v8</span></footer>
 </div>
 
 <!-- 設定画面 -->
@@ -370,6 +373,9 @@ input,textarea{-webkit-user-select:text;user-select:text}
       <input type="file" id="importFile" accept=".json,application/json" style="display:none">
       <button id="icsBtn">📅 Google用に書き出し（.ics）</button>
     </div>
+    <div class="picker-lbl" style="margin-top:14px">🌦 天気の地域</div>
+    <select id="weatherPlaceSel" class="ev-text" style="margin-top:6px"></select>
+    <p class="hint">選んだ地域の天気を、日の詳細に出します（16日先まで）。</p>
   </div>
     <div class="sheet-btns">
       <button class="close" id="closeSettingsBtn">閉じる ♡</button>
@@ -440,7 +446,7 @@ function load(){
   return normalize({ settings:{ theme:"blue" }, events:[] });
 }
 function normalize(s){
-  s.settings = Object.assign({theme:"blue"}, s.settings||{});
+  s.settings = Object.assign({theme:"blue", weatherPlace:"広島市"}, s.settings||{});
   s.events = s.events||[];
   return s;
 }
@@ -452,6 +458,90 @@ function parseKey(k){ const [y,m,dd]=k.split("-").map(Number); return new Date(y
 function addDays(d,n){ const x=new Date(d.getFullYear(),d.getMonth(),d.getDate()); x.setDate(x.getDate()+n); return x; }
 function diffDays(a,b){ return Math.round((new Date(b.getFullYear(),b.getMonth(),b.getDate()) - new Date(a.getFullYear(),a.getMonth(),a.getDate()))/86400000); }
 function fmtJP(d){ return (d.getMonth()+1)+"月"+d.getDate()+"日"; }
+
+/* 日本の祝日（計算式による。2000〜2099年が目安、特別な祝日は除く） */
+const holidayCache = {};
+function holidaysOf(year){
+  if(holidayCache[year]) return holidayCache[year];
+  const H = {};
+  const add = (m, d, name)=>{ H[m+"/"+d] = name; };
+  const nthMon = (m, n)=>{ const f = new Date(year, m-1, 1); return 1 + ((8 - f.getDay()) % 7) + (n-1)*7; };
+  const eq = c => Math.floor(0.24242*(year-1980) - Math.floor((year-1980)/4) + c);
+  add(1,1,"元日"); add(1,nthMon(1,2),"成人の日");
+  add(2,11,"建国記念の日"); add(2,23,"天皇誕生日");
+  add(3, eq(20.8431), "春分の日");
+  add(4,29,"昭和の日"); add(5,3,"憲法記念日"); add(5,4,"みどりの日"); add(5,5,"こどもの日");
+  add(7,nthMon(7,3),"海の日"); add(8,11,"山の日");
+  add(9,nthMon(9,3),"敬老の日"); add(9, eq(23.2488), "秋分の日");
+  add(10,nthMon(10,2),"スポーツの日"); add(11,3,"文化の日"); add(11,23,"勤労感謝の日");
+  const set = new Set(Object.keys(H).map(md=>{ const [m,d] = md.split("/").map(Number); return dkey(new Date(year, m-1, d)); }));
+  // 振替休日：祝日が日曜なら、次の祝日でない日へ
+  [...set].sort().forEach(k0=>{
+    if(parseKey(k0).getDay() === 0){
+      let d = addDays(parseKey(k0), 1);
+      while(set.has(dkey(d))) d = addDays(d, 1);
+      set.add(dkey(d)); H[(d.getMonth()+1)+"/"+d.getDate()] = "振替休日";
+    }
+  });
+  // 国民の休日：祝日に挟まれた日
+  for(let t = new Date(year,0,1); t.getFullYear() === year; t = addDays(t,1)){
+    const kk = dkey(t);
+    if(set.has(kk)) continue;
+    if(set.has(dkey(addDays(t,-1))) && set.has(dkey(addDays(t,1)))){
+      set.add(kk); H[(t.getMonth()+1)+"/"+t.getDate()] = "国民の休日";
+    }
+  }
+  holidayCache[year] = H;
+  return H;
+}
+function holidayName(k){
+  const d = parseKey(k);
+  return holidaysOf(d.getFullYear())[(d.getMonth()+1)+"/"+d.getDate()] || "";
+}
+
+/* 天気（Open-Meteo、無料・キー不要。地域は設定で選ぶ） */
+const PLACES = [
+  {name:"札幌市", lat:43.0621, lon:141.3544}, {name:"仙台市", lat:38.2682, lon:140.8694},
+  {name:"東京都", lat:35.6895, lon:139.6917}, {name:"名古屋市", lat:35.1815, lon:136.9066},
+  {name:"大阪市", lat:34.6937, lon:135.5023}, {name:"広島市", lat:34.3853, lon:132.4553},
+  {name:"松山市", lat:33.8392, lon:132.7657}, {name:"福岡市", lat:33.5904, lon:130.4017},
+  {name:"那覇市", lat:26.2124, lon:127.6809}
+];
+let weatherData = null;
+function weatherInfo(code){
+  if(code === 0) return ["☀️","晴れ"];
+  if(code === 1) return ["🌤️","晴れ時々曇り"];
+  if(code === 2) return ["⛅","曇り時々晴れ"];
+  if(code === 3) return ["☁️","曇り"];
+  if(code === 45 || code === 48) return ["🌫️","霧"];
+  if(code >= 51 && code <= 57) return ["🌦️","小雨"];
+  if((code >= 61 && code <= 67) || (code >= 80 && code <= 82)) return ["🌧️","雨"];
+  if((code >= 71 && code <= 77) || code === 85 || code === 86) return ["❄️","雪"];
+  if(code >= 95) return ["⛈️","雷雨"];
+  return ["🌤️","晴れ時々曇り"];
+}
+async function loadWeather(){
+  const place = PLACES.find(x=>x.name === (state.settings.weatherPlace || "広島市")) || PLACES[5];
+  try{
+    const c = JSON.parse(localStorage.getItem("takashi-calendar-weather") || "null");
+    if(c && c.place === place.name && c.date === todayKey && c.data){ weatherData = c.data; renderDayDetail(); return; }
+  }catch(e){}
+  try{
+    const url = "https://api.open-meteo.com/v1/forecast?latitude=" + place.lat + "&longitude=" + place.lon
+      + "&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max&timezone=Asia%2FTokyo&forecast_days=16";
+    const j = await (await fetch(url)).json();
+    const data = {};
+    ((j.daily && j.daily.time) || []).forEach((t, i)=>{
+      data[t] = { code: j.daily.weather_code[i], tmax: Math.round(j.daily.temperature_2m_max[i]),
+        tmin: Math.round(j.daily.temperature_2m_min[i]), pop: j.daily.precipitation_probability_max ? j.daily.precipitation_probability_max[i] : null };
+    });
+    if(Object.keys(data).length){
+      weatherData = data;
+      try{ localStorage.setItem("takashi-calendar-weather", JSON.stringify({place: place.name, date: todayKey, data})); }catch(e){}
+      renderDayDetail();
+    }
+  }catch(e){ /* オフライン等のときは天気を出さない */ }
+}
 const DOW = ["日","月","火","水","木","金","土"];
 const today = new Date(); today.setHours(0,0,0,0);
 const todayKey = dkey(today);
@@ -476,6 +566,7 @@ function renderCalendar(){
     if(d.getDay()===6) cell.classList.add("sat");
     if(d.getMonth()!==viewMonth) cell.classList.add("other");
     if(k===todayKey) cell.classList.add("today");
+    if(holidayName(k)) cell.classList.add("hol");
     if(k===(selKey||todayKey)) cell.classList.add("sel");
     const evs = eventsOn(k);
     let evHtml = "";
@@ -523,6 +614,12 @@ function renderDayDetail(){
   const k = selKey || todayKey;
   const d = parseKey(k);
   $("ddDate").textContent = (d.getMonth()+1)+"月"+d.getDate()+"日（"+DOW[d.getDay()]+"）";
+  const hol = holidayName(k);
+  const w = weatherData && weatherData[k];
+  let sub = "";
+  if(hol) sub += "🎌 " + hol;
+  if(w){ const wi = weatherInfo(w.code); sub += (sub ? "　" : "") + wi[0] + " " + wi[1] + "　最高" + w.tmax + "℃ / 最低" + w.tmin + "℃" + (w.pop != null ? "　☂️ " + w.pop + "%" : ""); }
+  $("ddSub").textContent = sub;
   const box = $("ddEvents"); box.innerHTML = "";
   const evs = eventsOn(k);
   if(!evs.length) box.innerHTML = '<div class="dd-none">この日の予定はありません</div>';
@@ -1056,9 +1153,15 @@ function toast(msg){
   clearTimeout(toastTimer); toastTimer=setTimeout(()=>t.classList.remove("on"),2300);
 }
 
+const wpSel = $("weatherPlaceSel");
+PLACES.forEach(pl=>{ const o = document.createElement("option"); o.value = pl.name; o.textContent = pl.name; wpSel.appendChild(o); });
+wpSel.value = state.settings.weatherPlace || "広島市";
+wpSel.addEventListener("change", ()=>{ state.settings.weatherPlace = wpSel.value; save(); weatherData = null; loadWeather(); toast("天気の地域を " + wpSel.value + " にしました 🌦"); });
+
 buildThemePicker();
 applyTheme(state.settings.theme||"blue");
 renderAll();
+loadWeather();
 if("serviceWorker" in navigator){ navigator.serviceWorker.register("sw.js").catch(()=>{}); }
 </script>
 </body>

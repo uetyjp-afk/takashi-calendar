@@ -1,4 +1,4 @@
-const CACHE = "takashi-calendar-v7";
+const CACHE = "takashi-calendar-v8";
 const ASSETS = ["./", "./index.html", "./manifest.webmanifest", "./icon.svg"];
 self.addEventListener("install", e => {
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(ASSETS)).then(() => self.skipWaiting()));
