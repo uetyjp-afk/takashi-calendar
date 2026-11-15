@@ -407,7 +407,7 @@ input,textarea{-webkit-user-select:text;user-select:text}
     <div id="ddEvents"></div>
   </div>
 
-  <footer class="note">データはこの端末の中だけに保存されます<br>ときどきバックアップ保存をしておくと安心です<br><span id="appVer">たかしのカレンダー v11</span></footer>
+  <footer class="note">データはこの端末の中だけに保存されます<br>ときどきバックアップ保存をしておくと安心です<br><span id="appVer">たかしのカレンダー v12</span></footer>
 </div>
 
 <!-- 設定画面 -->
@@ -663,7 +663,7 @@ const todayKey = dkey(today);
 let viewYear = today.getFullYear(), viewMonth = today.getMonth();
 let selectedKey = null;
 let lastDayKey = null;
-let selKey = null, lastTapKey = null, lastTapAt = 0;
+let selKey = todayKey, lastTapKey = null, lastTapAt = 0;
 
 const $ = id=>document.getElementById(id);
 function renderCalendar(){
@@ -792,7 +792,7 @@ function buildEventRow(e){
 
 /* 週表示 */
 function renderWeek(){
-  const sel = parseKey(selKey);
+  const sel = parseKey(selKey || todayKey);
   const start = addDays(sel, -sel.getDay());
   const end = addDays(start, 6);
   $("monthTitle").textContent = fmtJP(start) + "〜" + (end.getMonth() === start.getMonth() ? end.getDate() + "日" : fmtJP(end));
@@ -823,7 +823,7 @@ function renderWeek(){
 
 /* 日表示 */
 function renderDayView(){
-  const d = parseKey(selKey);
+  const d = parseKey(selKey || todayKey);
   const label = (d.getMonth()+1) + "月" + d.getDate() + "日（" + DOW[d.getDay()] + "）";
   $("monthTitle").textContent = label;
   $("dayBigDate").textContent = label;
@@ -877,7 +877,7 @@ function changePeriod(delta){
   const mode = curView();
   if(mode === "month"){ changeMonth(delta); return; }
   if(mode === "list") return;
-  const d = addDays(parseKey(selKey), delta * (mode === "week" ? 7 : 1));
+  const d = addDays(parseKey(selKey || todayKey), delta * (mode === "week" ? 7 : 1));
   selKey = dkey(d); lastDayKey = selKey;
   viewYear = d.getFullYear(); viewMonth = d.getMonth();
   renderAll();
