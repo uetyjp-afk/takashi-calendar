@@ -68,7 +68,7 @@ header.app p{margin:0;color:var(--sub);font-size:10.5px;font-weight:500}
 .week div:nth-child(1){color:var(--sun)} .week div:nth-child(7){color:var(--sat)}
 .grid{display:grid;grid-template-columns:repeat(7,1fr);gap:0;border-top:1px solid #f0d7e2;border-left:1px solid #f0d7e2}
 .day{
-  position:relative;min-height:78px;min-height:clamp(78px,10dvh,94px);border-radius:0;padding:4px 2px 3px;cursor:pointer;
+  position:relative;min-height:88px;min-height:clamp(88px,11.8dvh,104px);border-radius:0;padding:4px 2px 3px;cursor:pointer;
   display:flex;flex-direction:column;align-items:center;background:#fff;border:none;border-right:1px solid #f0d7e2;border-bottom:1px solid #f0d7e2;
   min-width:0;overflow:hidden;
 }
@@ -274,6 +274,8 @@ footer.note{text-align:center;color:var(--sub);font-size:11px;margin-top:18px;fo
 .ev-dates{display:flex;align-items:center;gap:8px}
 .ev-dates input{flex:1;min-width:0;border:2px solid var(--line);border-radius:12px;padding:10px;font-family:inherit;font-size:14.5px;font-weight:700;color:var(--ink)}
 .ev-dates input:focus{outline:none;border-color:var(--pink)}
+.ev-allday{display:flex;align-items:center;justify-content:space-between;margin-top:10px;font-weight:800;font-size:14.5px}
+#evTimes{margin-top:8px}
 textarea.ev-text{min-height:64px;resize:vertical}
 .ev-map{flex:none;font-size:11.5px;font-weight:800;color:#3a7bd5;text-decoration:none;background:#e8f0fd;border-radius:99px;padding:5px 10px}
 /* ＋ボタンとスタンプトレイ */
@@ -348,7 +350,7 @@ input,textarea{-webkit-user-select:text;user-select:text}
     <div id="ddEvents"></div>
   </div>
 
-  <footer class="note">データはこの端末の中だけに保存されます<br>ときどきバックアップ保存をしておくと安心です<br><span id="appVer">たかしのカレンダー v2</span></footer>
+  <footer class="note">データはこの端末の中だけに保存されます<br>ときどきバックアップ保存をしておくと安心です<br><span id="appVer">たかしのカレンダー v3</span></footer>
 </div>
 
 <!-- 設定画面 -->
@@ -392,6 +394,13 @@ input,textarea{-webkit-user-select:text;user-select:text}
     <h4>🗓 期間</h4>
     <div class="ev-dates">
       <input type="date" id="evStart"><span style="font-weight:800;color:var(--sub)">〜</span><input type="date" id="evEnd">
+    </div>
+    <div class="ev-allday">
+      <span>終日</span>
+      <label class="switch"><input type="checkbox" id="evAllDay" checked><span class="tr"></span></label>
+    </div>
+    <div class="ev-dates" id="evTimes" style="display:none">
+      <input type="time" id="evStartTime"><span style="font-weight:800;color:var(--sub)">〜</span><input type="time" id="evEndTime">
     </div>
     <h4>📍 場所（地図）</h4>
     <input type="text" id="evPlace" class="ev-text" placeholder="例：広島大学病院、○○美容院" maxlength="60">
@@ -463,11 +472,11 @@ function renderCalendar(){
     if(k===(selKey||todayKey)) cell.classList.add("sel");
     const evs = eventsOn(k);
     let evHtml = "";
-    evs.slice(0,2).forEach(e=>{
+    evs.slice(0,4).forEach(e=>{
       const col = e.color || "#f4528b";
       evHtml += '<div class="evt'+(k>e.start?" cont-l":"")+(k<e.end?" cont-r":"")+'" style="background:'+col+'2b;color:'+col+'"><span class="evt-tt">'+esc(e.title)+'</span></div>';
     });
-    if(evs.length>2) evHtml += '<div class="evt-more">+'+(evs.length-2)+'件</div>';
+    if(evs.length>4) evHtml += '<div class="evt-more">+'+(evs.length-4)+'件</div>';
     cell.dataset.key = k;
     cell.innerHTML = '<div class="dnum">'+d.getDate()+'</div>'
       + (evHtml ? '<div class="evts">'+evHtml+'</div>' : '');
@@ -491,6 +500,7 @@ function renderDayDetail(){
     const row = document.createElement("div"); row.className = "ev-row";
     const pd = e.start===e.end ? "" : fmtJP(parseKey(e.start))+"〜"+fmtJP(parseKey(e.end));
     row.innerHTML = '<span class="evt-ic-lg">'+iconHTML(e.icon)+'</span><span class="dd-main"><span class="tt"></span>'
+      + '<span class="dd-sub">'+timeLabel(e)+'</span>'
       + (e.place ? '<span class="dd-sub">📍'+esc(e.place)+'</span>' : '')
       + (e.memo ? '<span class="dd-sub">'+esc(e.memo)+'</span>' : '')
       + '</span>' + (pd ? '<span class="pd">'+pd+'</span>' : '');
@@ -567,7 +577,20 @@ function iconColor(id){
 }
 function eventsOn(k){
   return (state.events||[]).filter(e=>e.start<=k && k<=e.end)
-    .sort((a,b)=> a.start<b.start ? -1 : a.start>b.start ? 1 : (a.title<b.title ? -1 : 1));
+    .sort((a,b)=>{
+      if(a.start!==b.start) return a.start<b.start ? -1 : 1;
+      const ka = a.allDay===false ? "1"+(a.st||"") : "0";
+      const kb = b.allDay===false ? "1"+(b.st||"") : "0";
+      if(ka!==kb) return ka<kb ? -1 : 1;
+      return a.title<b.title ? -1 : a.title>b.title ? 1 : 0;
+    });
+}
+function timeLabel(e){
+  if(e.allDay===false && e.st){
+    if(e.start===e.end) return "🕘 " + e.st + "〜" + (e.et||e.st);
+    return "🕘 " + fmtJP(parseKey(e.start)) + " " + e.st + " 〜 " + fmtJP(parseKey(e.end)) + " " + (e.et||e.st);
+  }
+  return "終日";
 }
 
 /* 予定エディタ */
@@ -583,12 +606,18 @@ function openEventEditor(opts){
   $("evEnd").value = e ? e.end : (opts.date || todayKey);
   $("evPlace").value = e ? (e.place || "") : "";
   $("evMemo").value = e ? (e.memo || "") : "";
+  $("evAllDay").checked = e ? (e.allDay !== false) : true;
+  $("evStartTime").value = e && e.st ? e.st : "09:00";
+  $("evEndTime").value = e && e.et ? e.et : "10:00";
+  syncEvTimes();
   $("evDeleteBtn").style.display = e ? "" : "none";
   $("evSheetTitle").textContent = e ? "予定を編集" : "予定を追加";
   buildEvPickers();
   $("evOverlay").classList.add("on");
 }
 function closeEventEditor(){ $("evOverlay").classList.remove("on"); }
+function syncEvTimes(){ $("evTimes").style.display = $("evAllDay").checked ? "none" : ""; }
+$("evAllDay").addEventListener("change", syncEvTimes);
 function buildEvPickers(){
   $("evTitleIcon").innerHTML = iconHTML(evIcon) || '<span style="font-size:20px">📅</span>';
   const ip = $("evIconPicker"); ip.innerHTML = "";
@@ -617,11 +646,17 @@ $("evSaveBtn").addEventListener("click", ()=>{
   const memo = $("evMemo").value.trim();
   let st = $("evStart").value || todayKey, en = $("evEnd").value || st;
   if(en < st){ const t = st; st = en; en = t; }
+  const allDay = $("evAllDay").checked;
+  let stm = $("evStartTime").value || "09:00", etm = $("evEndTime").value || "10:00";
+  if(!allDay && en === st && etm <= stm){
+    const [h, m] = stm.split(":").map(Number);
+    etm = h >= 23 ? "23:59" : String(h + 1).padStart(2, "0") + ":" + String(m).padStart(2, "0");
+  }
   if(evEditId){
     const e = state.events.find(x=>x.id===evEditId);
-    if(e){ e.title = title; e.icon = evIcon; e.color = evColor; e.start = st; e.end = en; e.place = place; e.memo = memo; }
+    if(e){ e.title = title; e.icon = evIcon; e.color = evColor; e.start = st; e.end = en; e.place = place; e.memo = memo; e.allDay = allDay; e.st = allDay ? "" : stm; e.et = allDay ? "" : etm; }
   }else{
-    state.events.push({id:"e"+Date.now().toString(36)+Math.floor(Math.random()*999), title:title, icon:evIcon, color:evColor, start:st, end:en, place:place, memo:memo});
+    state.events.push({id:"e"+Date.now().toString(36)+Math.floor(Math.random()*999), title:title, icon:evIcon, color:evColor, start:st, end:en, place:place, memo:memo, allDay:allDay, st:allDay ? "" : stm, et:allDay ? "" : etm});
   }
   save(); renderAll(); closeEventEditor();
 });
@@ -639,12 +674,18 @@ $("closeSettingsBtn").addEventListener("click", ()=>$("settingsOverlay").classLi
 $("settingsOverlay").addEventListener("click", e=>{ if(e.target.id==="settingsOverlay") $("settingsOverlay").classList.remove("on"); });
 $("addEventBtn").addEventListener("click", ()=>openEventEditor({date:selKey || todayKey}));
 /* Googleカレンダー連携（追加ボタン＋ics書き出し） */
-function googleCalUrl(title, st, en, place, memo){
+function googleCalUrl(title, st, en, place, memo, allDay, stTime, etTime){
   const f = k => k.replace(/-/g, "");
-  const endEx = dkey(addDays(parseKey(en), 1));
+  let dates;
+  if(allDay === false && stTime){
+    const ft = t => t.replace(":", "") + "00";
+    dates = f(st) + "T" + ft(stTime) + "/" + f(en) + "T" + ft(etTime || stTime);
+  }else{
+    dates = f(st) + "/" + f(dkey(addDays(parseKey(en), 1)));
+  }
   return "https://calendar.google.com/calendar/render?action=TEMPLATE"
     + "&text=" + encodeURIComponent(title || "")
-    + "&dates=" + f(st) + "/" + f(endEx)
+    + "&dates=" + dates
     + (place ? "&location=" + encodeURIComponent(place) : "")
     + (memo ? "&details=" + encodeURIComponent(memo) : "");
 }
@@ -653,7 +694,8 @@ $("evGoogleBtn").addEventListener("click", ()=>{
   if(!title){ toast("タイトルを入れてね ✏"); $("evTitle").focus(); return; }
   let st = $("evStart").value || todayKey, en = $("evEnd").value || st;
   if(en < st){ const t = st; st = en; en = t; }
-  window.open(googleCalUrl(title, st, en, $("evPlace").value.trim(), $("evMemo").value.trim()), "_blank");
+  const allDay = $("evAllDay").checked;
+  window.open(googleCalUrl(title, st, en, $("evPlace").value.trim(), $("evMemo").value.trim(), allDay, allDay ? "" : ($("evStartTime").value || "09:00"), allDay ? "" : ($("evEndTime").value || "10:00")), "_blank");
 });
 $("icsBtn").addEventListener("click", ()=>{
   const f = k => k.replace(/-/g, "");
@@ -662,8 +704,14 @@ $("icsBtn").addEventListener("click", ()=>{
   (state.events || []).forEach(e=>{
     lines.push("BEGIN:VEVENT");
     lines.push("UID:" + e.id + "@takashi-calendar");
-    lines.push("DTSTART;VALUE=DATE:" + f(e.start));
-    lines.push("DTEND;VALUE=DATE:" + f(dkey(addDays(parseKey(e.end), 1))));
+    if(e.allDay === false && e.st){
+      const ft = t => t.replace(":", "") + "00";
+      lines.push("DTSTART:" + f(e.start) + "T" + ft(e.st));
+      lines.push("DTEND:" + f(e.end) + "T" + ft(e.et || e.st));
+    }else{
+      lines.push("DTSTART;VALUE=DATE:" + f(e.start));
+      lines.push("DTEND;VALUE=DATE:" + f(dkey(addDays(parseKey(e.end), 1))));
+    }
     lines.push("SUMMARY:" + escICS(e.title));
     if(e.place) lines.push("LOCATION:" + escICS(e.place));
     if(e.memo) lines.push("DESCRIPTION:" + escICS(e.memo));
@@ -775,7 +823,7 @@ function openEvMenu(e, chip){
   const map = $("evMenuMap");
   if(e.place){ map.style.display = ""; map.href = "https://www.google.com/maps/search/?api=1&query=" + encodeURIComponent(e.place); }
   else map.style.display = "none";
-  $("evMenuGoogle").href = googleCalUrl(e.title, e.start, e.end, e.place, e.memo);
+  $("evMenuGoogle").href = googleCalUrl(e.title, e.start, e.end, e.place, e.memo, e.allDay, e.st, e.et);
   const m = $("evMenu"); m.classList.add("on");
   const r = chip.getBoundingClientRect(), mw = 196;
   let x = Math.min(Math.max(8, r.left + r.width/2 - mw/2), window.innerWidth - mw - 8);
