@@ -63,8 +63,8 @@ header.app p{margin:0;color:var(--sub);font-size:10.5px;font-weight:500}
 }
 
 /* カレンダー */
-.cal-card{background:var(--card);border-radius:18px;box-shadow:var(--shadow);padding:6px 0 8px;touch-action:pan-y;overflow:hidden}
-.week{display:grid;grid-template-columns:repeat(7,1fr);text-align:center;font-size:12px;font-weight:800;color:var(--sub);padding:1px 0 4px}
+.cal-card{background:var(--card);border-radius:18px;box-shadow:var(--shadow);padding:6px 0 8px;touch-action:pan-y}
+.week{display:grid;grid-template-columns:repeat(7,1fr);text-align:center;font-size:12px;font-weight:800;color:var(--sub);padding:1px 0 4px;position:sticky;top:0;background:var(--card);z-index:6}
 .week div:nth-child(1){color:var(--sun)} .week div:nth-child(7){color:var(--sat)}
 .grid{display:grid;grid-template-columns:repeat(7,1fr);gap:0;border-top:1px solid #f0d7e2;border-left:1px solid #f0d7e2}
 .day{
@@ -211,13 +211,13 @@ footer.note{text-align:center;color:var(--sub);font-size:11px;margin-top:18px;fo
 
 /* 予定チップ */
 .day .evts{display:flex;flex-direction:column;gap:2px;width:100%;margin-top:1px}
-.evt{display:flex;align-items:center;gap:1px;touch-action:none;cursor:grab;font-size:10.5px;font-weight:800;line-height:1.3;padding:1px 2px;border-radius:5px;max-width:100%;min-width:0;box-sizing:border-box}
+.evt{display:flex;align-items:center;gap:1px;touch-action:none;cursor:grab;font-size:11px;font-weight:800;line-height:1.3;padding:1px 2px;border-radius:4px;max-width:none;min-width:0;box-sizing:border-box;margin:0 -2px}
 .evt-tt{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0;flex:1}
 .evt-ic{display:inline-flex;width:9.5px;height:9.5px;flex:none}
 .evt-ic svg{width:100%;height:100%}
 .evt-ic span{font-size:10px !important}
-.evt.cont-l{border-top-left-radius:0;border-bottom-left-radius:0;margin-left:-7px;padding-left:8px}
-.evt.cont-r{border-top-right-radius:0;border-bottom-right-radius:0;margin-right:-7px}
+.evt.cont-l{border-top-left-radius:0;border-bottom-left-radius:0;margin-left:-3px;padding-left:4px}
+.evt.cont-r{border-top-right-radius:0;border-bottom-right-radius:0;margin-right:-3px}
 .evt-more{font-size:9px;color:var(--sub);font-weight:800;padding-left:2px}
 .day.drop-hl{outline:3px solid var(--pink-deep);outline-offset:-2px}
 /* 日シートの予定行 */
@@ -281,7 +281,7 @@ textarea.ev-text{min-height:64px;resize:vertical}
 /* ＋ボタンとスタンプトレイ */
 #addEventBtn{position:fixed;right:16px;bottom:142px;z-index:41;width:56px;height:56px;border-radius:50%;border:none;background:var(--pink-deep);color:#fff;font-size:30px;font-weight:800;box-shadow:0 8px 20px rgba(0,0,0,.25);cursor:pointer;line-height:1}
 #addEventBtn:active{transform:scale(.94)}
-#stampTray{position:fixed;left:0;right:0;bottom:0;z-index:40;background:rgba(255,255,255,.97);box-shadow:0 -4px 16px rgba(74,40,56,.10);padding:6px 8px calc(6px + env(safe-area-inset-bottom))}
+#stampTray{position:fixed;left:0;right:0;bottom:0;z-index:40;background:#fff;box-shadow:0 -4px 16px rgba(74,40,56,.10);padding:6px 8px calc(6px + env(safe-area-inset-bottom))}
 #stampTray .row{display:grid;grid-auto-flow:column;grid-template-rows:repeat(2,auto);gap:2px;overflow-x:auto;max-width:540px;margin:0 auto}
 .tray-item{flex:none;width:56px;border:none;background:none;font-family:inherit;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:1px;padding:4px 0 2px;border-radius:12px;touch-action:pan-x}
 .tray-item .nm{font-size:9.5px;font-weight:800;color:var(--sub)}
@@ -350,7 +350,7 @@ input,textarea{-webkit-user-select:text;user-select:text}
     <div id="ddEvents"></div>
   </div>
 
-  <footer class="note">データはこの端末の中だけに保存されます<br>ときどきバックアップ保存をしておくと安心です<br><span id="appVer">たかしのカレンダー v3</span></footer>
+  <footer class="note">データはこの端末の中だけに保存されます<br>ときどきバックアップ保存をしておくと安心です<br><span id="appVer">たかしのカレンダー v4</span></footer>
 </div>
 
 <!-- 設定画面 -->
@@ -474,7 +474,7 @@ function renderCalendar(){
     let evHtml = "";
     evs.slice(0,4).forEach(e=>{
       const col = e.color || "#f4528b";
-      evHtml += '<div class="evt'+(k>e.start?" cont-l":"")+(k<e.end?" cont-r":"")+'" style="background:'+col+'2b;color:'+col+'"><span class="evt-tt">'+esc(e.title)+'</span></div>';
+      evHtml += '<div class="evt'+(k>e.start?" cont-l":"")+(k<e.end?" cont-r":"")+'" style="background:'+col+';color:#fff"><span class="evt-tt">'+esc(e.title)+'</span></div>';
     });
     if(evs.length>4) evHtml += '<div class="evt-more">+'+(evs.length-4)+'件</div>';
     cell.dataset.key = k;
@@ -484,6 +484,12 @@ function renderCalendar(){
     cell.addEventListener("click", ()=>{
       if(Date.now()-suppressCellClick<400) return;
       selKey = k; lastDayKey = k; renderCalendar();
+      const nc = grid.querySelector('.day[data-key="'+k+'"]');
+      const wk = document.querySelector(".week");
+      if(nc){
+        const y = nc.getBoundingClientRect().top + window.scrollY - (wk ? wk.offsetHeight : 0);
+        window.scrollTo({top: Math.max(0, y), behavior:"smooth"});
+      }
     });
     grid.appendChild(cell);
   }
@@ -795,7 +801,6 @@ function attachDrag(el, it){
       dragCtx = null;
       if(wasDrag){
         if(cell && cell.dataset.key) applyTrayItem(it, cell.dataset.key);
-        else toast("カレンダーの日に重ねて離してね");
       }
     };
     window.addEventListener("pointermove", move);
