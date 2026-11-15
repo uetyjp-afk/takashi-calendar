@@ -1,0 +1,973 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>たかしのカレンダー</title>
+<meta name="theme-color" content="#ff8fab">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icon.svg">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@400;500;700;800&display=swap" rel="stylesheet">
+<style>
+:root{
+  --pink:#ff7aa8; --pink-deep:#f4528b; --pink-soft:#ffe3ee; --pink-bg:#fff6f9;
+  --mint:#2fbfa5; --mint-soft:#dcf7f1; --lav:#9b8cf2; --ink:#4a3540; --sub:#9a7f8c;
+  --sun:#f4526b; --sat:#4a7dd4; --line:#f6dbe6; --warn:#f08c00; --danger:#e5395f;
+  --card:#ffffff; --shadow:0 4px 18px rgba(244,82,139,.12); --hero2:#ffb3c9;
+}
+*{box-sizing:border-box; -webkit-tap-highlight-color:transparent}
+html,body{margin:0;padding:0;overflow-x:hidden}
+body{
+  font-family:"M PLUS Rounded 1c","Hiragino Maru Gothic ProN",sans-serif;
+  color:var(--ink);
+  background:linear-gradient(180deg,#ffeef5 0%,#fff9f4 55%,#f3fbf8 100%);
+  min-height:100vh;
+}
+.wrap{max-width:540px;margin:0 auto;padding:6px 3px 196px}
+header.app{text-align:center;padding:2px 0 0;position:relative}
+header.app h1{font-size:16.5px;margin:0;font-weight:800;letter-spacing:.02em}
+header.app h1 .heart{color:var(--pink-deep)}
+header.app p{margin:0;color:var(--sub);font-size:10.5px;font-weight:500}
+
+/* 有給カード（一番目立つ） */
+.leave-card{
+  margin-top:8px;border-radius:14px;padding:7px 12px 6px;color:#fff;
+  background:linear-gradient(135deg,#25b79b,#57d3ae);
+  box-shadow:0 8px 22px rgba(37,183,155,.32);
+  display:flex;align-items:center;gap:10px;
+}
+.leave-card.low{background:linear-gradient(135deg,#f08c00,#ffb03a);box-shadow:0 8px 22px rgba(240,140,0,.32)}
+.leave-card.empty{background:linear-gradient(135deg,#e5395f,#ff7a92);box-shadow:0 8px 22px rgba(229,57,95,.32)}
+.leave-card .big{font-size:29px;font-weight:800;line-height:1;text-shadow:0 2px 6px rgba(0,0,0,.12)}
+.leave-card .unit{font-size:13px;font-weight:800}
+.leave-card .lbl{font-size:11.5px;font-weight:800;opacity:.95}
+.leave-card .sub{font-size:10.5px;font-weight:500;opacity:.92;margin-top:1px}
+.leave-card .right{flex:1}
+.bar{height:6px;border-radius:99px;background:rgba(255,255,255,.35);margin-top:4px;overflow:hidden}
+.bar i{display:block;height:100%;border-radius:99px;background:#fff;transition:width .4s}
+.leave-warn{font-size:11px;font-weight:800;margin-top:4px;display:none}
+.leave-card.low .leave-warn,.leave-card.empty .leave-warn{display:block}
+
+/* 月ナビ */
+.month-nav{display:flex;align-items:center;justify-content:space-between;margin:8px 2px 5px}
+.month-nav h2{font-size:18px;margin:0;font-weight:800}
+.nav-btn{
+  border:none;background:var(--card);color:var(--pink-deep);width:40px;height:40px;border-radius:50%;
+  font-size:19px;font-weight:800;box-shadow:var(--shadow);cursor:pointer;
+}
+.today-btn{
+  border:none;background:var(--pink-soft);color:var(--pink-deep);border-radius:99px;
+  padding:9px 15px;font-family:inherit;font-size:13px;font-weight:800;cursor:pointer;
+}
+
+/* カレンダー */
+.cal-card{background:var(--card);border-radius:18px;box-shadow:var(--shadow);padding:6px 0 8px;touch-action:pan-y;overflow:hidden}
+.week{display:grid;grid-template-columns:repeat(7,1fr);text-align:center;font-size:12px;font-weight:800;color:var(--sub);padding:1px 0 4px}
+.week div:nth-child(1){color:var(--sun)} .week div:nth-child(7){color:var(--sat)}
+.grid{display:grid;grid-template-columns:repeat(7,1fr);gap:0;border-top:1px solid #f0d7e2;border-left:1px solid #f0d7e2}
+.day{
+  position:relative;min-height:78px;min-height:clamp(78px,10dvh,94px);border-radius:0;padding:4px 2px 3px;cursor:pointer;
+  display:flex;flex-direction:column;align-items:center;background:#fff;border:none;border-right:1px solid #f0d7e2;border-bottom:1px solid #f0d7e2;
+  min-width:0;overflow:hidden;
+}
+.day:active{transform:scale(.96)}
+.day .dnum{font-size:16px;font-weight:800;line-height:1.15}
+.day.sun .dnum{color:var(--sun)} .day.sat .dnum{color:var(--sat)}
+.day.other{opacity:.45;background:#faf5f6}
+.day.today{box-shadow:inset 0 0 0 2px var(--pink)}
+.day.today .dnum{background:var(--pink);color:#fff;border-radius:50%;width:22px;height:22px;display:flex;align-items:center;justify-content:center}
+.day.period{background:var(--pink-soft)}
+.day.predicted{background:#fff;border:1.5px dashed #ffb3c9}
+.day .marks{display:flex;flex-wrap:wrap;justify-content:center;gap:1px 3px;margin-top:1px;min-height:21px}
+.mark{font-size:20px;font-weight:800;line-height:1.15}
+.mark.light{color:#ff9dbd} .mark.normal{color:var(--pink)} .mark.heavy{color:var(--danger)}
+.mark.leave{color:var(--mint)} .mark.half{color:#7ed3c0}
+.mark.custom{font-size:13px}
+.day .pred-lbl{font-size:8.5px;color:var(--pink-deep);font-weight:800}
+.day .memo-dot{width:5px;height:5px;border-radius:50%;background:var(--lav);margin-top:1px}
+.legend{display:flex;flex-wrap:wrap;gap:5px 12px;justify-content:center;margin-top:8px;padding:0 8px;font-size:11.5px;color:var(--sub);font-weight:700}
+.legend b{font-size:13px}
+
+/* データスイッチ */
+.switch-row{
+  margin-top:16px;background:var(--card);border-radius:18px;box-shadow:var(--shadow);
+  padding:13px 16px;display:flex;align-items:center;justify-content:space-between;
+}
+.switch-row .t{font-weight:800;font-size:15px}
+.switch-row .s{font-size:11.5px;color:var(--sub);font-weight:500}
+.switch{position:relative;width:54px;height:30px;flex:none}
+.switch input{opacity:0;width:0;height:0}
+.switch .tr{position:absolute;inset:0;border-radius:99px;background:#ecdde4;transition:.25s;cursor:pointer}
+.switch .tr:before{content:"";position:absolute;width:24px;height:24px;border-radius:50%;background:#fff;top:3px;left:3px;transition:.25s;box-shadow:0 2px 5px rgba(0,0,0,.18)}
+.switch input:checked + .tr{background:var(--pink)}
+.switch input:checked + .tr:before{transform:translateX(24px)}
+
+/* データパネル */
+.data-panel{margin-top:12px;display:none}
+.data-panel.on{display:block}
+.stat-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.stat{background:var(--card);border-radius:18px;box-shadow:var(--shadow);padding:12px 14px}
+.stat .k{font-size:11.5px;color:var(--sub);font-weight:800}
+.stat .v{font-size:24px;font-weight:800;margin-top:2px}
+.stat .v small{font-size:13px}
+.stat .note{font-size:11px;color:var(--sub);font-weight:500}
+.stat.hero{grid-column:1/-1;background:linear-gradient(135deg,var(--pink),var(--hero2));color:#fff;text-align:center;padding:15px}
+.stat.hero .k{color:rgba(255,255,255,.9)}
+.stat.hero .v{font-size:34px}
+.stat.hero .note{color:rgba(255,255,255,.9)}
+.pred-row{margin-top:10px;background:var(--card);border-radius:18px;box-shadow:var(--shadow);padding:11px 14px;font-size:12.5px;font-weight:500;color:var(--sub);display:flex;align-items:center;justify-content:space-between;gap:8px}
+.pred-row .t{font-weight:800;color:var(--ink);font-size:13.5px}
+
+/* セクション共通 */
+.section{margin-top:16px;background:var(--card);border-radius:22px;box-shadow:var(--shadow);padding:15px 16px}
+.section h3{margin:0 0 4px;font-size:16px;font-weight:800}
+.section .hint{font-size:12px;color:var(--sub);font-weight:500;margin:0 0 10px}
+.custom-list{display:flex;flex-direction:column;gap:8px;margin-bottom:12px}
+.custom-item{display:flex;align-items:center;gap:10px;background:var(--pink-bg);border-radius:14px;padding:8px 12px}
+.custom-item .sym{font-size:19px;font-weight:800;width:26px;text-align:center}
+.custom-item .nm{flex:1;font-weight:700;font-size:14px}
+.custom-item .del{border:none;background:none;color:var(--sub);font-size:16px;cursor:pointer;padding:4px}
+.add-form{display:flex;flex-direction:column;gap:9px}
+.add-form input[type=text]{
+  border:2px solid var(--line);border-radius:12px;padding:10px 12px;font-family:inherit;font-size:15px;font-weight:500;width:100%;background:#fff;color:var(--ink);
+}
+.add-form input[type=text]:focus{outline:none;border-color:var(--pink)}
+.sym-picker,.color-picker{display:flex;flex-wrap:wrap;gap:6px}
+.sym-picker button,.color-picker button{
+  border:2px solid var(--line);background:#fff;border-radius:11px;cursor:pointer;font-family:inherit;
+}
+.sym-picker button{width:40px;height:40px;font-size:17px}
+.color-picker button{width:34px;height:34px;border-radius:50%}
+.sym-picker button.sel,.color-picker button.sel{border-color:var(--pink-deep);transform:scale(1.08)}
+.picker-lbl{font-size:11.5px;font-weight:800;color:var(--sub)}
+.add-btn{
+  border:none;background:var(--pink);color:#fff;border-radius:99px;padding:12px;font-family:inherit;
+  font-size:15px;font-weight:800;cursor:pointer;box-shadow:0 5px 14px rgba(244,82,139,.3);
+}
+.add-btn:active{transform:scale(.98)}
+
+/* 設定 */
+.set-row{display:flex;align-items:center;gap:10px;margin:8px 0}
+.set-row label{flex:1;font-weight:700;font-size:14px}
+.set-row input[type=number]{
+  width:84px;border:2px solid var(--line);border-radius:12px;padding:9px;font-family:inherit;
+  font-size:16px;font-weight:800;text-align:center;color:var(--ink);
+}
+.set-row input[type=number]:focus{outline:none;border-color:var(--pink)}
+.backup-btns{display:flex;gap:9px;margin-top:6px}
+.backup-btns button{
+  flex:1;border:2px solid var(--pink-soft);background:#fff;color:var(--pink-deep);border-radius:99px;
+  padding:10px;font-family:inherit;font-size:13px;font-weight:800;cursor:pointer;
+}
+footer.note{text-align:center;color:var(--sub);font-size:11px;margin-top:18px;font-weight:500;line-height:1.7}
+
+/* 日モーダル */
+.overlay{
+  position:fixed;inset:0;background:rgba(74,40,56,.45);display:none;z-index:50;
+  align-items:flex-end;justify-content:center;
+}
+.overlay.on{display:flex}
+.sheet{
+  background:#fff;width:100%;max-width:540px;max-height:88vh;overflow-y:auto;
+  border-radius:26px 26px 0 0;padding:18px 18px calc(20px + env(safe-area-inset-bottom));
+  animation:up .22s ease;
+}
+@keyframes up{from{transform:translateY(30px);opacity:.6}to{transform:none;opacity:1}}
+.sheet h3{margin:0;font-size:19px;font-weight:800}
+.sheet .dow{color:var(--sub);font-size:13px;font-weight:700}
+.sheet h4{margin:16px 0 7px;font-size:13.5px;font-weight:800;color:var(--pink-deep)}
+.seg{display:flex;gap:7px;flex-wrap:wrap}
+.seg button{
+  flex:1;min-width:70px;border:2px solid var(--line);background:#fff;border-radius:14px;padding:10px 4px;
+  font-family:inherit;font-size:14px;font-weight:800;color:var(--ink);cursor:pointer;
+}
+.seg button small{display:block;font-size:11px;color:var(--sub);font-weight:700}
+.seg button.sel-period{background:var(--pink-soft);border-color:var(--pink-deep);color:var(--pink-deep)}
+.seg button.sel-leave{background:var(--mint-soft);border-color:var(--mint);color:#12836c}
+.chips{display:flex;flex-wrap:wrap;gap:7px}
+.chips button{
+  border:2px solid var(--line);background:#fff;border-radius:99px;padding:8px 13px;cursor:pointer;
+  font-family:inherit;font-size:13.5px;font-weight:800;color:var(--ink);
+}
+.chips button.sel{border-color:currentColor;background:var(--pink-bg)}
+.chips .none-msg{font-size:12.5px;color:var(--sub);font-weight:500}
+.sheet textarea{
+  width:100%;border:2px solid var(--line);border-radius:14px;padding:10px 12px;font-family:inherit;
+  font-size:14.5px;min-height:58px;resize:vertical;color:var(--ink);
+}
+.sheet textarea:focus{outline:none;border-color:var(--pink)}
+.sheet-btns{display:flex;gap:9px;margin-top:18px}
+.sheet-btns .close{
+  flex:1;border:none;background:var(--pink);color:#fff;border-radius:99px;padding:13px;
+  font-family:inherit;font-size:15px;font-weight:800;cursor:pointer;
+}
+.sheet-btns .clear{
+  border:2px solid var(--line);background:#fff;color:var(--danger);border-radius:99px;padding:13px 16px;
+  font-family:inherit;font-size:13.5px;font-weight:800;cursor:pointer;
+}
+.auto-note{text-align:center;font-size:11px;color:var(--sub);margin-top:9px;font-weight:500}
+
+/* 予定チップ */
+.day .evts{display:flex;flex-direction:column;gap:2px;width:100%;margin-top:1px}
+.evt{display:flex;align-items:center;gap:1px;touch-action:none;cursor:grab;font-size:10.5px;font-weight:800;line-height:1.3;padding:1px 2px;border-radius:5px;max-width:100%;min-width:0;box-sizing:border-box}
+.evt-tt{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0;flex:1}
+.evt-ic{display:inline-flex;width:9.5px;height:9.5px;flex:none}
+.evt-ic svg{width:100%;height:100%}
+.evt-ic span{font-size:10px !important}
+.evt.cont-l{border-top-left-radius:0;border-bottom-left-radius:0;margin-left:-7px;padding-left:8px}
+.evt.cont-r{border-top-right-radius:0;border-bottom-right-radius:0;margin-right:-7px}
+.evt-more{font-size:9px;color:var(--sub);font-weight:800;padding-left:2px}
+.day.drop-hl{outline:3px solid var(--pink-deep);outline-offset:-2px}
+/* 日シートの予定行 */
+.ev-row{display:flex;align-items:center;gap:8px;background:var(--pink-bg);border-radius:12px;padding:8px 10px;margin-bottom:6px;cursor:pointer}
+.ev-row .tt{flex:1;font-weight:800;font-size:13.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ev-row .pd{font-size:11px;color:var(--sub);font-weight:700;flex:none}
+.evt-ic-lg{display:inline-flex;width:22px;height:22px;flex:none}
+.evt-ic-lg svg{width:100%;height:100%}
+.add-ev-btn{width:100%;border:2px dashed var(--line);background:#fff;color:var(--pink-deep);border-radius:14px;padding:10px;font-family:inherit;font-size:13.5px;font-weight:800;cursor:pointer}
+/* 選んだ日の予定（カレンダー下の全文表示） */
+.day-detail{margin-top:12px;background:var(--card);border-radius:18px;box-shadow:var(--shadow);padding:12px 14px 8px}
+.day-detail .dd-head{display:flex;align-items:center;gap:9px;flex-wrap:wrap;margin-bottom:8px}
+.day-detail .dd-date{font-weight:800;font-size:15.5px}
+.day-detail .dd-marks{font-size:12px;color:var(--sub);font-weight:700}
+.day-detail .ev-row{align-items:flex-start}
+.day-detail .dd-main{flex:1;min-width:0;display:flex;flex-direction:column;gap:1px}
+.day-detail .dd-main .tt{font-weight:800;font-size:13.5px;white-space:normal;overflow-wrap:anywhere;line-height:1.4}
+.day-detail .dd-sub{font-size:11.5px;color:var(--sub);font-weight:600;overflow-wrap:anywhere;line-height:1.4}
+.day-detail .dd-none{font-size:12.5px;color:var(--sub);font-weight:500;padding:1px 0 7px}
+.day-detail .dd-memo{font-size:12.5px;font-weight:600;background:var(--pink-bg);border-radius:10px;padding:7px 10px;margin:0 0 6px;overflow-wrap:anywhere;line-height:1.5}
+/* ToDo */
+.mark.todo-mk{color:#9b8cf2;font-size:13px}
+.todo-card,.diary-card{margin-top:12px;background:var(--card);border-radius:18px;box-shadow:var(--shadow);padding:12px 14px}
+.todo-head{font-weight:800;font-size:15.5px;margin-bottom:6px;display:flex;gap:9px;align-items:baseline}
+.todo-head .cnt{font-size:12px;color:var(--sub);font-weight:700}
+.todo-item{display:flex;align-items:flex-start;gap:9px;padding:7px 2px;border-bottom:1px dashed var(--line)}
+.todo-item:last-child{border-bottom:none}
+.todo-check{flex:none;width:24px;height:24px;border-radius:50%;border:2px solid var(--pink);background:#fff;color:#fff;font-size:14px;font-weight:800;display:flex;align-items:center;justify-content:center;cursor:pointer;padding:0;margin-top:1px;font-family:inherit}
+.todo-check.done{background:var(--mint);border-color:var(--mint)}
+.todo-main{flex:1;min-width:0}
+.todo-text{font-size:14px;font-weight:700;overflow-wrap:anywhere;line-height:1.4;cursor:pointer}
+.todo-item.done .todo-text{color:var(--sub);text-decoration:line-through}
+.todo-due{font-size:11px;color:var(--sub);font-weight:700}
+.todo-due.over{color:var(--danger)}
+.todo-del{flex:none;border:none;background:none;font-size:14px;cursor:pointer;padding:2px 4px}
+.todo-add{display:flex;gap:6px;margin-top:10px}
+.todo-add input[type="text"]{flex:1;min-width:0;border:2px solid var(--line);border-radius:11px;padding:9px 10px;font-family:inherit;font-size:14px;color:var(--ink)}
+.todo-add input[type="text"]:focus{outline:none;border-color:var(--pink)}
+.todo-add input[type="date"]{width:126px;flex:none;border:2px solid var(--line);border-radius:11px;padding:8px 5px;font-family:inherit;font-size:12px;color:var(--ink)}
+.todo-add button{flex:none;border:none;background:var(--pink-deep);color:#fff;border-radius:11px;padding:0 13px;font-family:inherit;font-size:13.5px;font-weight:800;cursor:pointer}
+.todo-none{font-size:12.5px;color:var(--sub);font-weight:500;padding:2px 0 4px}
+/* 日記一覧 */
+.diary-item{padding:7px 2px;border-bottom:1px dashed var(--line);cursor:pointer}
+.diary-item:last-child{border-bottom:none}
+.diary-date{font-size:11.5px;color:var(--pink-deep);font-weight:800;margin-bottom:1px}
+.diary-text{font-size:13.5px;font-weight:600;overflow-wrap:anywhere;line-height:1.5;white-space:pre-wrap}
+/* 予定エディタ */
+.ev-text{width:100%;border:2px solid var(--line);border-radius:12px;padding:11px 12px;font-family:inherit;font-size:15px;font-weight:500;color:var(--ink)}
+.ev-text:focus{outline:none;border-color:var(--pink)}
+.ev-icons{display:flex;flex-wrap:wrap;gap:6px}
+.ev-ic-btn{width:42px;height:42px;border:2px solid var(--line);border-radius:12px;background:#fff;display:flex;align-items:center;justify-content:center;cursor:pointer;padding:0}
+.ev-ic-btn svg{width:26px;height:26px}
+.ev-ic-btn.sel{border-color:var(--pink-deep);background:var(--pink-soft)}
+.ev-dates{display:flex;align-items:center;gap:8px}
+.ev-dates input{flex:1;min-width:0;border:2px solid var(--line);border-radius:12px;padding:10px;font-family:inherit;font-size:14.5px;font-weight:700;color:var(--ink)}
+.ev-dates input:focus{outline:none;border-color:var(--pink)}
+textarea.ev-text{min-height:64px;resize:vertical}
+.ev-map{flex:none;font-size:11.5px;font-weight:800;color:#3a7bd5;text-decoration:none;background:#e8f0fd;border-radius:99px;padding:5px 10px}
+/* ＋ボタンとスタンプトレイ */
+#addEventBtn{position:fixed;right:16px;bottom:142px;z-index:41;width:56px;height:56px;border-radius:50%;border:none;background:var(--pink-deep);color:#fff;font-size:30px;font-weight:800;box-shadow:0 8px 20px rgba(0,0,0,.25);cursor:pointer;line-height:1}
+#addEventBtn:active{transform:scale(.94)}
+#stampTray{position:fixed;left:0;right:0;bottom:0;z-index:40;background:rgba(255,255,255,.97);box-shadow:0 -4px 16px rgba(74,40,56,.10);padding:6px 8px calc(6px + env(safe-area-inset-bottom))}
+#stampTray .row{display:grid;grid-auto-flow:column;grid-template-rows:repeat(2,auto);gap:2px;overflow-x:auto;max-width:540px;margin:0 auto}
+.tray-item{flex:none;width:56px;border:none;background:none;font-family:inherit;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:1px;padding:4px 0 2px;border-radius:12px;touch-action:pan-x}
+.tray-item .nm{font-size:9.5px;font-weight:800;color:var(--sub)}
+.tray-ic{display:inline-flex;width:34px;height:34px;align-items:center;justify-content:center}
+.tray-ic svg{width:100%;height:100%}
+.drag-ghost{position:fixed;z-index:200;width:54px;height:54px;pointer-events:none;transform:translate(-50%,-115%);filter:drop-shadow(0 6px 8px rgba(0,0,0,.3))}
+.drag-ghost svg{width:100%;height:100%}
+.drag-ghost span{font-size:36px;line-height:1}
+#trashZone{position:fixed;left:12px;right:12px;bottom:calc(132px + env(safe-area-inset-bottom));z-index:45;display:none;align-items:center;justify-content:center;height:60px;border:2.5px dashed #e5395f;border-radius:16px;background:rgba(255,240,243,.97);color:#e5395f;font-weight:800;font-size:15px}
+#trashZone.on{display:flex}
+#trashZone.hot{background:#e5395f;color:#fff;border-style:solid}
+#settingsBtn{position:absolute;right:2px;top:0;width:44px;height:44px;border:none;border-radius:50%;background:#fff;box-shadow:var(--shadow);cursor:pointer;padding:9px}
+#settingsBtn svg{width:100%;height:100%;display:block}
+#settingsBtn:active{transform:scale(.93)}
+#settingsOverlay .section{box-shadow:none;border:2px solid var(--line)}
+body{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
+input,textarea{-webkit-user-select:text;user-select:text}
+.tray-item.grab{background:var(--pink-soft);transform:scale(1.14)}
+.evt.grab{outline:2px solid var(--pink-deep);outline-offset:1px;transform:scale(1.07)}
+.day.sel{box-shadow:inset 0 0 0 3px var(--pink-deep);background:var(--pink-soft)}
+#evMenu{position:fixed;z-index:95;width:196px;background:#fff;border-radius:14px;box-shadow:0 10px 30px rgba(0,0,0,.28);padding:6px;display:none}
+#evMenu.on{display:block}
+#evMenu .evm-title{font-weight:800;font-size:13.5px;padding:7px 10px 5px;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#evMenu button,#evMenu a{display:block;width:100%;text-align:left;background:none;border:none;border-top:1px solid var(--line);padding:11px 10px;font-size:14px;font-weight:700;color:var(--ink);cursor:pointer;text-decoration:none;font-family:inherit;box-sizing:border-box}
+#evMenu .del{color:#e5395f}
+.ev-title-row{display:flex;align-items:center;gap:10px}
+.ev-title-row .ev-text{flex:1}
+#evTitleIcon{width:42px;height:42px;flex:none;display:flex;align-items:center;justify-content:center;background:var(--pink-soft);border-radius:12px}
+#evTitleIcon svg{width:30px;height:30px}
+.mark{display:inline-block}
+.mark.qtr{font-size:20px}
+.mark.grab{outline:2px solid var(--pink-deep);outline-offset:1px;border-radius:50%;transform:scale(1.3)}
+.toast{
+  position:fixed;left:50%;bottom:26px;transform:translateX(-50%) translateY(80px);background:var(--ink);color:#fff;
+  padding:11px 20px;border-radius:99px;font-size:13.5px;font-weight:700;z-index:99;transition:.3s;opacity:0;pointer-events:none;
+  max-width:88vw;text-align:center;
+}
+.toast.on{transform:translateX(-50%);opacity:1}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="app">
+    <button id="settingsBtn" aria-label="設定を開く"><svg viewBox="0 0 48 48"><g fill="#a87f96"><rect x="21.6" y="2.5" width="4.8" height="11" rx="2.2"/><rect x="21.6" y="2.5" width="4.8" height="11" rx="2.2" transform="rotate(45 24 24)"/><rect x="21.6" y="2.5" width="4.8" height="11" rx="2.2" transform="rotate(90 24 24)"/><rect x="21.6" y="2.5" width="4.8" height="11" rx="2.2" transform="rotate(135 24 24)"/><rect x="21.6" y="2.5" width="4.8" height="11" rx="2.2" transform="rotate(180 24 24)"/><rect x="21.6" y="2.5" width="4.8" height="11" rx="2.2" transform="rotate(225 24 24)"/><rect x="21.6" y="2.5" width="4.8" height="11" rx="2.2" transform="rotate(270 24 24)"/><rect x="21.6" y="2.5" width="4.8" height="11" rx="2.2" transform="rotate(315 24 24)"/><circle cx="24" cy="24" r="12.2"/><circle cx="24" cy="24" r="5.4" fill="#ffffff"/></g></svg></button>
+    <h1>📅 たかしのカレンダー</h1>
+    <p>アイコンで予定を、かんたん記録</p>
+  </header>
+
+  <!-- 月ナビ -->
+  <div class="month-nav">
+    <button class="nav-btn" id="prevBtn" aria-label="前の月">‹</button>
+    <h2 id="monthTitle">-</h2>
+    <button class="today-btn" id="todayBtn">今日</button>
+    <button class="nav-btn" id="nextBtn" aria-label="次の月">›</button>
+  </div>
+
+  <!-- カレンダー -->
+  <div class="cal-card">
+    <div class="week"><div>日</div><div>月</div><div>火</div><div>水</div><div>木</div><div>金</div><div>土</div></div>
+    <div class="grid" id="calGrid"></div>
+    <div class="legend">
+      <span><b style="color:#ff9dbd">△</b> 生理・少ない</span>
+      <span><b style="color:#ff7aa8">●</b> ふつう</span>
+      <span><b style="color:#e5395f">✕</b> 多い</span>
+      <span><b style="color:#2fbfa5">●</b> 有給</span>
+      <span><b style="color:#7ed3c0">◐</b> 半日有給</span>
+    </div>
+  </div>
+
+  <!-- 選んだ日の予定（全文） -->
+  <div class="day-detail" id="dayDetail">
+    <div class="dd-head"><span class="dd-date" id="ddDate">-</span></div>
+    <div id="ddEvents"></div>
+  </div>
+
+  <footer class="note">データはこの端末の中だけに保存されます<br>ときどきバックアップ保存をしておくと安心です<br><span id="appVer">たかしのカレンダー v1</span></footer>
+</div>
+
+<!-- 設定画面 -->
+<div class="overlay" id="settingsOverlay" style="z-index:55">
+  <div class="sheet" style="max-height:94vh">
+  <!-- 設定 -->
+  <div class="section">
+    <h3>⚙ 設定・バックアップ</h3>
+    <div class="picker-lbl" style="margin-top:14px">🎨 カレンダーの色（アプリのアイコンの色も変わります）</div>
+    <div class="color-picker" id="themePicker" style="margin-top:6px"></div>
+    <p class="hint">ホーム画面のアイコンは、ホーム画面に追加し直すと新しい色になります。</p>
+    <div class="backup-btns">
+      <button id="exportBtn">💾 バックアップ保存</button>
+      <button id="importBtn">📂 バックアップ読込</button>
+      <input type="file" id="importFile" accept=".json,application/json" style="display:none">
+      <button id="icsBtn">📅 Google用に書き出し（.ics）</button>
+    </div>
+  </div>
+    <div class="sheet-btns">
+      <button class="close" id="closeSettingsBtn">閉じる ♡</button>
+    </div>
+  </div>
+</div>
+
+<!-- 日モーダル -->
+<button id="addEventBtn" aria-label="予定を追加">＋</button>
+<div id="trashZone">🗑 ここに持ってくると削除</div>
+<div id="evMenu"><div class="evm-title" id="evMenuTitle"></div><button id="evMenuEdit">✏ 予定を編集</button><a id="evMenuMap" target="_blank" rel="noopener">📍 地図を見る</a><a id="evMenuGoogle" target="_blank" rel="noopener">📅 Googleカレンダーに追加</a><button id="evMenuDel" class="del">🗑 予定を削除</button></div>
+<div id="stampTray"><div class="row" id="trayRow"></div></div>
+
+<!-- 予定エディタ -->
+<div class="overlay" id="evOverlay" style="z-index:60">
+  <div class="sheet">
+    <h3 id="evSheetTitle">予定を追加</h3>
+    <h4>✏ タイトル</h4>
+    <div class="ev-title-row"><span id="evTitleIcon"></span><input type="text" id="evTitle" class="ev-text" placeholder="例：病院、美容院、早番…" maxlength="30"></div>
+    <h4>🎀 アイコン</h4>
+    <div class="ev-icons" id="evIconPicker"></div>
+    <h4>🎨 色</h4>
+    <div class="color-picker" id="evColorPicker"></div>
+    <h4>🗓 期間</h4>
+    <div class="ev-dates">
+      <input type="date" id="evStart"><span style="font-weight:800;color:var(--sub)">〜</span><input type="date" id="evEnd">
+    </div>
+    <h4>📍 場所（地図）</h4>
+    <input type="text" id="evPlace" class="ev-text" placeholder="例：広島大学病院、○○美容院" maxlength="60">
+    <p class="hint" style="margin:6px 0 0">場所を入れると、日の画面に「📍地図」ボタンが出て、地図アプリで開けます。</p>
+    <h4>📝 メモ</h4>
+    <textarea id="evMemo" class="ev-text" placeholder="持ち物、集合時間、予約番号など…" maxlength="500"></textarea>
+    <div class="sheet-btns">
+      <button class="clear" id="evDeleteBtn">削除</button>
+      <button class="clear" id="evCancelBtn" style="color:var(--sub)">やめる</button>
+      <button class="clear" id="evGoogleBtn" style="color:#3a7bd5">Googleに追加</button>
+      <button class="close" id="evSaveBtn">保存する</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+"use strict";
+const KEY = "takashi-calendar-v1";
+const SYMBOLS = ["★","♥","●","◆","▲","♪","✿","☀","☂","✈","✚","♨","🍰","🛍","💇","🐾","🌙","🎁","🏥","💊"];
+const COLORS  = ["#f4528b","#ff8c42","#f2b705","#2fbfa5","#4a7dd4","#9b8cf2","#e0567a","#8a6d4b","#5aa469","#888"];
+
+let state = load();
+function load(){
+  try{
+    const raw = localStorage.getItem(KEY);
+    if(raw){ const s = JSON.parse(raw); if(s && s.events) return normalize(s); }
+  }catch(e){}
+  return normalize({ settings:{ theme:"blue" }, events:[] });
+}
+function normalize(s){
+  s.settings = Object.assign({theme:"blue"}, s.settings||{});
+  s.events = s.events||[];
+  return s;
+}
+function save(){ localStorage.setItem(KEY, JSON.stringify(state)); }
+
+/* 日付ユーティリティ（ローカル日付で統一） */
+function dkey(d){ return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0"); }
+function parseKey(k){ const [y,m,dd]=k.split("-").map(Number); return new Date(y,m-1,dd); }
+function addDays(d,n){ const x=new Date(d.getFullYear(),d.getMonth(),d.getDate()); x.setDate(x.getDate()+n); return x; }
+function diffDays(a,b){ return Math.round((new Date(b.getFullYear(),b.getMonth(),b.getDate()) - new Date(a.getFullYear(),a.getMonth(),a.getDate()))/86400000); }
+function fmtJP(d){ return (d.getMonth()+1)+"月"+d.getDate()+"日"; }
+const DOW = ["日","月","火","水","木","金","土"];
+const today = new Date(); today.setHours(0,0,0,0);
+const todayKey = dkey(today);
+let viewYear = today.getFullYear(), viewMonth = today.getMonth();
+let selectedKey = null;
+let lastDayKey = null;
+let selKey = null, lastTapKey = null, lastTapAt = 0;
+
+const $ = id=>document.getElementById(id);
+function renderCalendar(){
+  $("monthTitle").textContent = viewYear+"年 "+(viewMonth+1)+"月";
+  const grid = $("calGrid"); grid.innerHTML="";
+  const first = new Date(viewYear, viewMonth, 1);
+  const startOffset = first.getDay();
+  const startDate = addDays(first, -startOffset);
+  for(let i=0;i<42;i++){
+    const d = addDays(startDate, i);
+    const k = dkey(d);
+    const cell = document.createElement("div");
+    cell.className = "day";
+    if(d.getDay()===0) cell.classList.add("sun");
+    if(d.getDay()===6) cell.classList.add("sat");
+    if(d.getMonth()!==viewMonth) cell.classList.add("other");
+    if(k===todayKey) cell.classList.add("today");
+    if(k===(selKey||todayKey)) cell.classList.add("sel");
+    const evs = eventsOn(k);
+    let evHtml = "";
+    evs.slice(0,2).forEach(e=>{
+      const col = e.color || "#f4528b";
+      evHtml += '<div class="evt'+(k>e.start?" cont-l":"")+(k<e.end?" cont-r":"")+'" style="background:'+col+'2b;color:'+col+'"><span class="evt-tt">'+esc(e.title)+'</span></div>';
+    });
+    if(evs.length>2) evHtml += '<div class="evt-more">+'+(evs.length-2)+'件</div>';
+    cell.dataset.key = k;
+    cell.innerHTML = '<div class="dnum">'+d.getDate()+'</div>'
+      + (evHtml ? '<div class="evts">'+evHtml+'</div>' : '');
+    cell.querySelectorAll(".evt").forEach((chip, idx)=>{ const e2 = evs[idx]; if(e2) attachChipDrag(chip, e2, k); });
+    cell.addEventListener("click", ()=>{
+      if(Date.now()-suppressCellClick<400) return;
+      selKey = k; lastDayKey = k; renderCalendar();
+    });
+    grid.appendChild(cell);
+  }
+  renderDayDetail();
+}
+function renderDayDetail(){
+  const k = selKey || todayKey;
+  const d = parseKey(k);
+  $("ddDate").textContent = (d.getMonth()+1)+"月"+d.getDate()+"日（"+DOW[d.getDay()]+"）";
+  const box = $("ddEvents"); box.innerHTML = "";
+  const evs = eventsOn(k);
+  if(!evs.length) box.innerHTML = '<div class="dd-none">この日の予定はありません</div>';
+  evs.forEach(e=>{
+    const row = document.createElement("div"); row.className = "ev-row";
+    const pd = e.start===e.end ? "" : fmtJP(parseKey(e.start))+"〜"+fmtJP(parseKey(e.end));
+    row.innerHTML = '<span class="evt-ic-lg">'+iconHTML(e.icon)+'</span><span class="dd-main"><span class="tt"></span>'
+      + (e.place ? '<span class="dd-sub">📍'+esc(e.place)+'</span>' : '')
+      + (e.memo ? '<span class="dd-sub">'+esc(e.memo)+'</span>' : '')
+      + '</span>' + (pd ? '<span class="pd">'+pd+'</span>' : '');
+    row.querySelector(".tt").textContent = e.title;
+    row.addEventListener("click", ()=>openEventEditor({event:e}));
+    box.appendChild(row);
+  });
+}
+function renderAll(){ renderCalendar(); buildTray(); }
+
+/* 日モーダル */
+function changeMonth(delta){
+  viewMonth += delta;
+  if(viewMonth<0){ viewMonth=11; viewYear--; }
+  if(viewMonth>11){ viewMonth=0; viewYear++; }
+  renderCalendar();
+}
+$("prevBtn").addEventListener("click", ()=>changeMonth(-1));
+$("nextBtn").addEventListener("click", ()=>changeMonth(1));
+$("todayBtn").addEventListener("click", ()=>{ viewYear=today.getFullYear(); viewMonth=today.getMonth(); renderCalendar(); });
+/* 左右スワイプで月移動 */
+let swipeX = null, swipeY = null;
+const calCardEl = document.querySelector(".cal-card");
+calCardEl.addEventListener("touchstart", e=>{
+  if(e.touches.length===1){ swipeX = e.touches[0].clientX; swipeY = e.touches[0].clientY; }
+}, {passive:true});
+calCardEl.addEventListener("touchend", e=>{
+  if(swipeX===null) return;
+  const t = e.changedTouches[0];
+  const dx = t.clientX - swipeX, dy = t.clientY - swipeY;
+  swipeX = swipeY = null;
+  if(Math.abs(dx) > 55 && Math.abs(dx) > Math.abs(dy)*1.6) changeMonth(dx < 0 ? 1 : -1);
+}, {passive:true});
+
+/* スイッチ */
+
+/* マイ項目追加フォーム */
+let selSymbol = SYMBOLS[0], selColor = COLORS[0];
+const STAMPS = [
+  {id:"st-hospital", name:"病院", color:"#4a7dd4", svg:'<svg viewBox="0 0 48 48"><rect x="11" y="8" width="26" height="35" rx="2.5" fill="#f7fafc" stroke="#b9c6d8" stroke-width="2"/><rect x="19" y="3.5" width="10" height="7" rx="1.5" fill="#f7fafc" stroke="#b9c6d8" stroke-width="2"/><path d="M21.8 13h4.4v3.4h3.4v4.4h-3.4v3.4h-4.4v-3.4h-3.4v-4.4h3.4z" fill="#e5395f"/><rect x="14.5" y="27" width="4.6" height="4.6" rx="1" fill="#a9c6e8"/><rect x="28.9" y="27" width="4.6" height="4.6" rx="1" fill="#a9c6e8"/><rect x="21" y="33" width="6" height="10" rx="1" fill="#8fb0d8"/></svg>'},
+  {id:"st-tooth", name:"歯医者", color:"#4a7dd4", svg:'<svg viewBox="0 0 48 48"><path d="M24 7.5c-5.5-3-13.5-2.2-16 3.7-2.2 5.2.7 9.8 2.4 14.6 1.7 4.6 2.9 13.2 5.4 13.2 2.3 0 2.7-5.2 4.2-8.3.9-1.9 5.7-1.9 6.6 0 1.5 3.1 1.9 8.3 4.2 8.3 2.5 0 3.7-8.6 5.4-13.2 1.7-4.8 4.6-9.4 2.4-14.6C37.5 5.3 29.5 4.5 24 7.5z" fill="#ffffff" stroke="#a9c6e8" stroke-width="2.4"/><path d="M39 3.5l.9 2.3 2.3.9-2.3.9-.9 2.3-.9-2.3-2.3-.9 2.3-.9z" fill="#f2b705"/></svg>'},
+  {id:"st-food", name:"食事", color:"#4a7dd4", svg:'<svg viewBox="0 0 48 48"><path d="M31 5l9 12M37 4l6 11" stroke="#8a6d4b" stroke-width="3" stroke-linecap="round"/><path d="M6 25h36a18 13 0 0 1-36 0z" fill="#4a7dd4"/><ellipse cx="24" cy="24.5" rx="15" ry="5" fill="#ffffff"/><path d="M18 43h12" stroke="#4a7dd4" stroke-width="3" stroke-linecap="round"/></svg>'},
+  {id:"st-beer", name:"飲み会", color:"#f08c00", svg:'<svg viewBox="0 0 48 48"><path d="M34.5 18h2.8a6.3 6.3 0 0 1 0 12.6h-2.8" fill="none" stroke="#d98a06" stroke-width="3.2"/><rect x="9" y="13" width="26" height="29" rx="3.5" fill="#f6a821"/><circle cx="14.5" cy="12" r="5" fill="#fff3d6"/><circle cx="23.5" cy="9.8" r="6" fill="#fff3d6"/><circle cx="31" cy="12" r="5" fill="#fff3d6"/><path d="M16.5 24v11M24.5 24v11" stroke="#ffdf9e" stroke-width="3.2" stroke-linecap="round"/></svg>'},
+  {id:"st-work", name:"仕事", color:"#8a6d4b", svg:'<svg viewBox="0 0 48 48"><path d="M18 17v-3.5A3.5 3.5 0 0 1 21.5 10h5A3.5 3.5 0 0 1 30 13.5V17" fill="none" stroke="#8a6d4b" stroke-width="3.2"/><rect x="6" y="16" width="36" height="23" rx="4.5" fill="#b08968"/><rect x="6" y="25" width="36" height="5" fill="#8a6d4b"/><rect x="20.5" y="23" width="7" height="9" rx="1.6" fill="#f2b705"/></svg>'},
+  {id:"st-cake", name:"誕生日", color:"#f4528b", svg:'<svg viewBox="0 0 48 48"><rect x="15" y="14" width="3" height="9" rx="1.4" fill="#7fb8e8"/><rect x="22.5" y="14" width="3" height="9" rx="1.4" fill="#f2b705"/><rect x="30" y="14" width="3" height="9" rx="1.4" fill="#7fb8e8"/><ellipse cx="16.5" cy="11" rx="2" ry="2.8" fill="#ff9f43"/><ellipse cx="24" cy="11" rx="2" ry="2.8" fill="#ff9f43"/><ellipse cx="31.5" cy="11" rx="2" ry="2.8" fill="#ff9f43"/><rect x="8" y="24" width="32" height="16" rx="2.5" fill="#ffb3c9"/><path d="M8 24h32v5c-3.5 2.8-7-1.8-10.5 0-3.5 1.8-7-2.8-10.5 0-3.5 2.8-7.5-1.8-11 1z" fill="#ffffff"/></svg>'},
+  {id:"st-important", name:"重要", color:"#e5395f", svg:'<svg viewBox="0 0 48 48"><circle cx="24" cy="24" r="19" fill="#e5395f"/><rect x="21.7" y="10.5" width="4.6" height="17" rx="2.3" fill="#ffffff"/><circle cx="24" cy="34.8" r="2.9" fill="#ffffff"/></svg>'},
+  {id:"st-movie", name:"映画", color:"#7a68e0", svg:'<svg viewBox="0 0 48 48"><rect x="6" y="19" width="36" height="23" rx="3" fill="#4a4a68"/><path d="M6.5 19.5L9.6 10A3 3 0 0 1 13 7.6l27.4 3.3a3 3 0 0 1 2.6 3.6l-1.6 5.5z" fill="#6a6a8c"/><path d="M14 10.6l5 4M22 11.7l5 4M30 12.8l5 4" stroke="#ffffff" stroke-width="2.8"/><rect x="11" y="25.5" width="12" height="3.4" rx="1.7" fill="#ffffff" opacity=".6"/><rect x="11" y="32" width="18" height="3.4" rx="1.7" fill="#ffffff" opacity=".38"/></svg>'},
+  {id:"st-onsen", name:"温泉", color:"#4a9fd8", svg:'<svg viewBox="0 0 48 48"><g stroke="#8fb8dd" stroke-width="2.8" stroke-linecap="round" fill="none"><path d="M17 4c-2.2 3 2.2 4.2 0 7.2"/><path d="M25 2.5c-2.2 3 2.2 4.2 0 7.2"/><path d="M33 4c-2.2 3 2.2 4.2 0 7.2"/></g><path d="M5 27h38" stroke="#4a9fd8" stroke-width="3.4" stroke-linecap="round"/><path d="M8 31h32v2.5A9.5 9.5 0 0 1 30.5 43h-13A9.5 9.5 0 0 1 8 33.5z" fill="#7fb8e8"/><path d="M17 43v2.5M31 43v2.5" stroke="#4a9fd8" stroke-width="3" stroke-linecap="round"/></svg>'},
+  {id:"st-trip", name:"旅行", color:"#ff8c42", svg:'<svg viewBox="0 0 48 48"><path d="M18 13.5V10A3.5 3.5 0 0 1 21.5 6.5h5A3.5 3.5 0 0 1 30 10v3.5" fill="none" stroke="#b08968" stroke-width="3.2"/><rect x="9" y="13.5" width="30" height="28.5" rx="4.5" fill="#5aa9e6"/><rect x="15.5" y="13.5" width="4" height="28.5" fill="#3a7bd5"/><rect x="28.5" y="13.5" width="4" height="28.5" fill="#3a7bd5"/><circle cx="24" cy="24" r="3.4" fill="#ffd9e6"/><path d="M35.5 31l.8 1.9 1.9.8-1.9.8-.8 1.9-.8-1.9-1.9-.8 1.9-.8z" fill="#f2b705"/></svg>'},
+  {id:"st-beauty", name:"美容院", color:"#f4528b", svg:'<svg viewBox="0 0 48 48"><circle cx="14" cy="34" r="6.5" fill="none" stroke="#f4528b" stroke-width="3.6"/><circle cx="14" cy="14" r="6.5" fill="none" stroke="#f4528b" stroke-width="3.6"/><path d="M19.5 17.5 L41 33 M19.5 30.5 L41 15" stroke="#f4528b" stroke-width="3.6" stroke-linecap="round"/></svg>'},
+  {id:"st-car", name:"車", color:"#5aa469", svg:'<svg viewBox="0 0 48 48"><path d="M14.5 26l2-6.5h15l2 6.5z" fill="#dff3e4"/><path d="M10 29l3.2-10A4 4 0 0 1 17 16h14a4 4 0 0 1 3.8 3L38 29" fill="#5aa469"/><rect x="6" y="27" width="36" height="10" rx="3" fill="#5aa469"/><circle cx="11" cy="31" r="1.8" fill="#ffe9a8"/><circle cx="37" cy="31" r="1.8" fill="#ffe9a8"/><circle cx="14" cy="37" r="4" fill="#4a3540"/><circle cx="34" cy="37" r="4" fill="#4a3540"/></svg>'},
+  {id:"st-shopping", name:"買い物", color:"#e0567a", svg:'<svg viewBox="0 0 48 48"><path d="M17 16v-1.5a7 7 0 0 1 14 0V16" fill="none" stroke="#e0567a" stroke-width="3.4"/><path d="M11 15h26l-2.2 24.5A3.5 3.5 0 0 1 31.3 43H16.7a3.5 3.5 0 0 1-3.5-3.5z" fill="#f28bb0"/><circle cx="17" cy="21.5" r="2" fill="#fff"/><circle cx="31" cy="21.5" r="2" fill="#fff"/></svg>'},
+  {id:"st-kusuri", name:"お薬", color:"#e0567a", svg:'<svg viewBox="0 0 48 48"><g transform="rotate(-35 22 22)"><rect x="7" y="16" width="30" height="12.5" rx="6.25" fill="#f2769f"/><path d="M22 16h8.75a6.25 6.25 0 0 1 0 12.5H22z" fill="#ffd9e6"/></g><circle cx="35" cy="36" r="6" fill="#f2b705"/><path d="M31.8 36h6.4" stroke="#fff" stroke-width="2.4" stroke-linecap="round"/></svg>'},
+  {id:"st-seitai", name:"整体", color:"#2fbfa5", svg:'<svg viewBox="0 0 48 48"><circle cx="22" cy="10.5" r="5.5" fill="#2fbfa5"/><path d="M8 35c4-9 9-13 14-13s10 4 14 13c.9 2-1.2 4-3.2 2.8C29 34.6 25.8 33 22 33s-7 1.6-10.8 4.8C9.2 39 7.1 37 8 35z" fill="#2fbfa5"/><path d="M39 4l1.3 3L43 8.2 40.3 9.5 39 12.5 37.7 9.5 35 8.2 37.7 7z" fill="#f2b705"/></svg>'},
+  {id:"st-hayaban", name:"早番", color:"#ff8c42", svg:'<svg viewBox="0 0 48 48"><circle cx="24" cy="24" r="10" fill="#ff8c42"/><g stroke="#ff8c42" stroke-width="3.6" stroke-linecap="round"><path d="M24 4v5M24 39v5M4 24h5M39 24h5M10.5 10.5l3.5 3.5M34 34l3.5 3.5M37.5 10.5L34 14M14 34l-3.5 3.5"/></g></svg>'},
+  {id:"st-osoban", name:"遅番", color:"#7a68e0", svg:'<svg viewBox="0 0 48 48"><path d="M42 25.6A18 18 0 1 1 22.4 6 14 14 0 0 0 42 25.6z" fill="#7a68e0"/><path d="M37 4l1.1 2.6 2.6 1.1-2.6 1.1L37 11.4l-1.1-2.6-2.6-1.1 2.6-1.1z" fill="#f2b705"/></svg>'},
+  {id:"st-meeting", name:"会議", color:"#2fbfa5", svg:'<svg viewBox="0 0 48 48"><circle cx="17.5" cy="15.5" r="6.8" fill="#4a7dd4"/><path d="M4 41c1.4-8.4 6.2-12.8 13.5-12.8S29.6 32.6 31 41z" fill="#4a7dd4"/><circle cx="34" cy="18" r="5.6" fill="#2fbfa5"/><path d="M27.5 41c1-6.8 4.6-10.4 10.4-10.4 3.4 0 5.9 1.3 7.6 3.8L44.5 41z" fill="#2fbfa5"/></svg>'},
+  {id:"st-sports", name:"スポーツ", color:"#5aa469", svg:'<svg viewBox="0 0 48 48"><circle cx="24" cy="24" r="18" fill="#ffffff" stroke="#b9c6d8" stroke-width="2.2"/><path d="M24 15.5l6.2 4.5-2.4 7.3h-7.6l-2.4-7.3z" fill="#4a4a68"/><path d="M24 15.5V7.5M30.2 20l6.8-2.7M27.8 27.3l4.3 5.9M20.2 27.3l-4.3 5.9M17.8 20L11 17.3" stroke="#4a4a68" stroke-width="2"/></svg>'},
+  {id:"st-money", name:"お金", color:"#d99a06", svg:'<svg viewBox="0 0 48 48"><circle cx="24" cy="24" r="18" fill="#f2b705" stroke="#d99a06" stroke-width="2.6"/><circle cx="24" cy="24" r="13.5" fill="none" stroke="#d99a06" stroke-width="1.8" stroke-dasharray="3 3.4"/><text x="24" y="32.5" text-anchor="middle" font-size="19" font-weight="800" fill="#ffffff">¥</text></svg>'}
+];
+function stampOf(id){ return STAMPS.find(x=>x.id===id); }
+function esc(t){ return String(t||"").replace(/[&<>"']/g, m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[m])); }
+function iconHTML(id){
+  const st = stampOf(id); if(st) return st.svg;
+  return '';
+}
+function iconName(id){
+  const st = stampOf(id); if(st) return st.name;
+  return "";
+}
+function iconColor(id){
+  const st = stampOf(id); if(st) return st.color;
+  return "#f4528b";
+}
+function eventsOn(k){
+  return (state.events||[]).filter(e=>e.start<=k && k<=e.end)
+    .sort((a,b)=> a.start<b.start ? -1 : a.start>b.start ? 1 : (a.title<b.title ? -1 : 1));
+}
+
+/* 予定エディタ */
+let evEditId = null, evIcon = "", evColor = "#f4528b";
+function openEventEditor(opts){
+  opts = opts||{};
+  const e = opts.event || null;
+  evEditId = e ? e.id : null;
+  evIcon = e ? (e.icon||"") : (opts.icon||"");
+  evColor = e ? (e.color || iconColor(evIcon)) : iconColor(evIcon);
+  $("evTitle").value = e ? e.title : (evIcon ? iconName(evIcon) : "");
+  $("evStart").value = e ? e.start : (opts.date || todayKey);
+  $("evEnd").value = e ? e.end : (opts.date || todayKey);
+  $("evPlace").value = e ? (e.place || "") : "";
+  $("evMemo").value = e ? (e.memo || "") : "";
+  $("evDeleteBtn").style.display = e ? "" : "none";
+  $("evSheetTitle").textContent = e ? "予定を編集" : "予定を追加";
+  buildEvPickers();
+  $("evOverlay").classList.add("on");
+}
+function closeEventEditor(){ $("evOverlay").classList.remove("on"); }
+function buildEvPickers(){
+  $("evTitleIcon").innerHTML = iconHTML(evIcon) || '<span style="font-size:20px">📅</span>';
+  const ip = $("evIconPicker"); ip.innerHTML = "";
+  const mk = (id, html, title)=>{
+    const b = document.createElement("button");
+    b.type = "button"; b.className = "ev-ic-btn" + (evIcon===id ? " sel" : "");
+    b.innerHTML = html; if(title) b.title = title;
+    b.addEventListener("click", ()=>{ evIcon = id; evColor = iconColor(id); buildEvPickers(); });
+    ip.appendChild(b);
+  };
+  mk("", '<span style="font-size:11px;font-weight:800;color:var(--sub)">なし</span>', "アイコンなし");
+  STAMPS.forEach(st=>mk(st.id, st.svg, st.name));
+  const cp = $("evColorPicker"); cp.innerHTML = "";
+  COLORS.forEach(col=>{
+    const b = document.createElement("button");
+    b.type = "button"; b.style.background = col;
+    if(evColor === col) b.classList.add("sel");
+    b.addEventListener("click", ()=>{ evColor = col; buildEvPickers(); });
+    cp.appendChild(b);
+  });
+}
+$("evSaveBtn").addEventListener("click", ()=>{
+  const title = $("evTitle").value.trim();
+  if(!title){ toast("タイトルを入れてね ✏"); $("evTitle").focus(); return; }
+  const place = $("evPlace").value.trim();
+  const memo = $("evMemo").value.trim();
+  let st = $("evStart").value || todayKey, en = $("evEnd").value || st;
+  if(en < st){ const t = st; st = en; en = t; }
+  if(evEditId){
+    const e = state.events.find(x=>x.id===evEditId);
+    if(e){ e.title = title; e.icon = evIcon; e.color = evColor; e.start = st; e.end = en; e.place = place; e.memo = memo; }
+  }else{
+    state.events.push({id:"e"+Date.now().toString(36)+Math.floor(Math.random()*999), title:title, icon:evIcon, color:evColor, start:st, end:en, place:place, memo:memo});
+  }
+  save(); renderAll(); closeEventEditor();
+});
+$("evDeleteBtn").addEventListener("click", ()=>{
+  if(!evEditId) return;
+  if(!confirm("この予定を削除しますか？")) return;
+  state.events = state.events.filter(x=>x.id!==evEditId);
+  save(); renderAll(); closeEventEditor();
+  toast("予定を削除しました");
+});
+$("evCancelBtn").addEventListener("click", closeEventEditor);
+$("evOverlay").addEventListener("click", e=>{ if(e.target.id==="evOverlay") closeEventEditor(); });
+$("settingsBtn").addEventListener("click", ()=>$("settingsOverlay").classList.add("on"));
+$("closeSettingsBtn").addEventListener("click", ()=>$("settingsOverlay").classList.remove("on"));
+$("settingsOverlay").addEventListener("click", e=>{ if(e.target.id==="settingsOverlay") $("settingsOverlay").classList.remove("on"); });
+$("addEventBtn").addEventListener("click", ()=>openEventEditor({date:selKey || todayKey}));
+/* Googleカレンダー連携（追加ボタン＋ics書き出し） */
+function googleCalUrl(title, st, en, place, memo){
+  const f = k => k.replace(/-/g, "");
+  const endEx = dkey(addDays(parseKey(en), 1));
+  return "https://calendar.google.com/calendar/render?action=TEMPLATE"
+    + "&text=" + encodeURIComponent(title || "")
+    + "&dates=" + f(st) + "/" + f(endEx)
+    + (place ? "&location=" + encodeURIComponent(place) : "")
+    + (memo ? "&details=" + encodeURIComponent(memo) : "");
+}
+$("evGoogleBtn").addEventListener("click", ()=>{
+  const title = $("evTitle").value.trim();
+  if(!title){ toast("タイトルを入れてね ✏"); $("evTitle").focus(); return; }
+  let st = $("evStart").value || todayKey, en = $("evEnd").value || st;
+  if(en < st){ const t = st; st = en; en = t; }
+  window.open(googleCalUrl(title, st, en, $("evPlace").value.trim(), $("evMemo").value.trim()), "_blank");
+});
+$("icsBtn").addEventListener("click", ()=>{
+  const f = k => k.replace(/-/g, "");
+  const escICS = t => String(t || "").replace(/\\/g, " ").replace(/;/g, "；").replace(/,/g, "、").replace(/\n/g, " ");
+  const lines = ["BEGIN:VCALENDAR", "VERSION:2.0", "PRODID:-//takashi-calendar//JP"];
+  (state.events || []).forEach(e=>{
+    lines.push("BEGIN:VEVENT");
+    lines.push("UID:" + e.id + "@takashi-calendar");
+    lines.push("DTSTART;VALUE=DATE:" + f(e.start));
+    lines.push("DTEND;VALUE=DATE:" + f(dkey(addDays(parseKey(e.end), 1))));
+    lines.push("SUMMARY:" + escICS(e.title));
+    if(e.place) lines.push("LOCATION:" + escICS(e.place));
+    if(e.memo) lines.push("DESCRIPTION:" + escICS(e.memo));
+    lines.push("END:VEVENT");
+  });
+  lines.push("END:VCALENDAR");
+  const blob = new Blob([lines.join("\r\n")], {type:"text/calendar"});
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = "takashi-calendar-" + todayKey + ".ics";
+  a.click(); URL.revokeObjectURL(a.href);
+  toast("Googleカレンダー用に書き出しました 📅");
+});
+
+
+/* スタンプトレイ（ドラッグ＆ドロップ対応） */
+function buildTray(){
+  const row = $("trayRow"); if(!row) return; row.innerHTML = "";
+  STAMPS.forEach(st=>{
+    const b = document.createElement("button");
+    b.type = "button"; b.className = "tray-item";
+    b.innerHTML = '<span class="tray-ic">'+st.svg+'</span><span class="nm"></span>';
+    b.querySelector(".nm").textContent = st.name;
+    attachDrag(b, {id:st.id, name:st.name, html:st.svg});
+    row.appendChild(b);
+  });
+}
+let dragCtx = null;
+let suppressTrayClick = 0;
+/* ドラッグ中は、指の位置ではなく、浮いているアイコン（指の少し上に表示）の中心で日付を判定する */
+function aimPoint(ghost, x, y){
+  if(ghost){
+    const r = ghost.getBoundingClientRect();
+    if(r.width) return {x: r.left + r.width/2, y: r.top + r.height/2};
+  }
+  return {x: x, y: y};
+}
+function attachDrag(el, it){
+  el.addEventListener("pointerdown", e=>{
+    const sx = e.clientX, sy = e.clientY;
+    el.classList.add("grab");
+    const g0 = document.createElement("div");
+    g0.className = "drag-ghost"; g0.innerHTML = it.html;
+    g0.style.left = sx + "px"; g0.style.top = sy + "px";
+    document.body.appendChild(g0);
+    dragCtx = {it:it, started:false, dead:false, ghost:g0, hl:null};
+    const move = ev=>{
+      if(!dragCtx || dragCtx.dead) return;
+      const dx = ev.clientX - sx, dy = ev.clientY - sy;
+      if(!dragCtx.started){
+        if(Math.abs(dx) > 26 && Math.abs(dx) > Math.abs(dy)){
+          dragCtx.dead = true;
+          if(dragCtx.ghost) dragCtx.ghost.remove();
+          el.classList.remove("grab");
+          return;
+        }
+        if(Math.hypot(dx, dy) > 10){
+          dragCtx.started = true;
+          try{ if(navigator.vibrate) navigator.vibrate(8); }catch(err){}
+        }else return;
+      }
+      dragCtx.ghost.style.left = ev.clientX + "px";
+      dragCtx.ghost.style.top = ev.clientY + "px";
+      const aim = aimPoint(dragCtx.ghost, ev.clientX, ev.clientY);
+      const under = document.elementFromPoint(aim.x, aim.y);
+      const cell = under && under.closest ? under.closest(".day") : null;
+      if(dragCtx.hl && dragCtx.hl !== cell) dragCtx.hl.classList.remove("drop-hl");
+      if(cell) cell.classList.add("drop-hl");
+      dragCtx.hl = cell;
+    };
+    const up = ()=>{
+      window.removeEventListener("pointermove", move);
+      window.removeEventListener("pointerup", up);
+      window.removeEventListener("pointercancel", up);
+      if(!dragCtx) return;
+      const wasDrag = dragCtx.started, cell = dragCtx.hl;
+      if(wasDrag){ suppressTrayClick = Date.now(); }
+      el.classList.remove("grab");
+      if(dragCtx.ghost) dragCtx.ghost.remove();
+      if(dragCtx.hl) dragCtx.hl.classList.remove("drop-hl");
+      dragCtx = null;
+      if(wasDrag){
+        if(cell && cell.dataset.key) applyTrayItem(it, cell.dataset.key);
+        else toast("カレンダーの日に重ねて離してね");
+      }
+    };
+    window.addEventListener("pointermove", move);
+    window.addEventListener("pointerup", up);
+    window.addEventListener("pointercancel", up);
+  });
+  el.addEventListener("click", ()=>{
+    if(Date.now() - suppressTrayClick < 400) return;
+    /* タップ：記録アイコンは選んだ日に入れる／予定アイコンは入力画面を開く */
+    if(it.kind) applyTrayItem(it, selKey || todayKey);
+    else openEventEditor({date:selKey || todayKey, icon:it.id});
+  });
+}
+
+
+/* トレイアイコンを日へ即反映（編集画面は開かない） */
+function applyTrayItem(it, key){
+  selKey = key; lastDayKey = key;
+  state.events.push({id:"e"+Date.now().toString(36)+Math.floor(Math.random()*999), title:it.name, icon:it.id, color:iconColor(it.id), start:key, end:key, place:"", memo:""});
+  save(); renderAll();
+}
+function openEvMenu(e, chip){
+  menuEvent = e;
+  $("evMenuTitle").textContent = e.title;
+  const map = $("evMenuMap");
+  if(e.place){ map.style.display = ""; map.href = "https://www.google.com/maps/search/?api=1&query=" + encodeURIComponent(e.place); }
+  else map.style.display = "none";
+  $("evMenuGoogle").href = googleCalUrl(e.title, e.start, e.end, e.place, e.memo);
+  const m = $("evMenu"); m.classList.add("on");
+  const r = chip.getBoundingClientRect(), mw = 196;
+  let x = Math.min(Math.max(8, r.left + r.width/2 - mw/2), window.innerWidth - mw - 8);
+  let y = r.bottom + 6; if(y + 200 > window.innerHeight) y = Math.max(8, r.top - 206);
+  m.style.left = x + "px"; m.style.top = y + "px";
+}
+function closeEvMenu(){ $("evMenu").classList.remove("on"); menuEvent = null; }
+$("evMenuEdit").addEventListener("click", ()=>{ const e = menuEvent; closeEvMenu(); if(e) openEventEditor({event:e}); });
+$("evMenuDel").addEventListener("click", ()=>{
+  const e = menuEvent; closeEvMenu(); if(!e) return;
+  state.events = state.events.filter(x=>x.id!==e.id);
+  save(); renderAll(); toast("予定を削除しました 🗑");
+});
+document.addEventListener("pointerdown", e=>{ const m = $("evMenu"); if(m.classList.contains("on") && !m.contains(e.target)) closeEvMenu(); });
+
+/* 記録マーク（○△✕など）の長押しメニュー・移動・削除 */
+document.addEventListener("contextmenu", e=>{ if(e.target.closest && e.target.closest(".day,.tray-item,.evt")) e.preventDefault(); });
+let suppressCellClick = 0;
+function attachChipDrag(chip, e, dayKey){
+  chip.addEventListener("pointerdown", ev=>{
+    const sx = ev.clientX, sy = ev.clientY;
+    const downAt = Date.now();
+    let activated = false, dragging = false, cancelled = false;
+    let ghost = null, hl = null, onTrash = false;
+    const timer = setTimeout(()=>{
+      if(cancelled) return;
+      activated = true;
+      chip.classList.add("grab");
+      ghost = document.createElement("div");
+      ghost.className = "drag-ghost";
+      ghost.innerHTML = iconHTML(e.icon) || '<span style="font-size:36px">📅</span>';
+      ghost.style.left = sx + "px"; ghost.style.top = sy + "px";
+      document.body.appendChild(ghost);
+      try{ if(navigator.vibrate) navigator.vibrate(15); }catch(err){}
+      openEvMenu(e, chip);
+    }, 400);
+    const move = mv=>{
+      const dx = mv.clientX - sx, dy = mv.clientY - sy;
+      if(!activated){
+        if(Math.hypot(dx, dy) > 22){ cancelled = true; clearTimeout(timer); }
+        return;
+      }
+      if(!dragging){
+        if(Math.hypot(dx, dy) < 6) return;
+        dragging = true;
+        closeEvMenu();
+        $("trashZone").classList.add("on");
+      }
+      ghost.style.left = mv.clientX + "px";
+      ghost.style.top = mv.clientY + "px";
+      const aim = aimPoint(ghost, mv.clientX, mv.clientY);
+      const under = document.elementFromPoint(aim.x, aim.y);
+      const cell = under && under.closest ? under.closest(".day") : null;
+      const tz = under && under.closest ? under.closest("#trashZone") : null;
+      if(hl && hl !== cell) hl.classList.remove("drop-hl");
+      if(cell) cell.classList.add("drop-hl");
+      hl = cell;
+      const tzr = $("trashZone").getBoundingClientRect();
+      onTrash = !!tz || (aim.y >= tzr.top - 20 && aim.y <= tzr.bottom + 24);
+      $("trashZone").classList.toggle("hot", onTrash);
+    };
+    const up = ()=>{
+      clearTimeout(timer);
+      window.removeEventListener("pointermove", move);
+      window.removeEventListener("pointerup", up);
+      window.removeEventListener("pointercancel", up);
+      chip.classList.remove("grab");
+      if(ghost) ghost.remove();
+      if(hl) hl.classList.remove("drop-hl");
+      $("trashZone").classList.remove("on"); $("trashZone").classList.remove("hot");
+      if(!activated){
+        if(!cancelled && Date.now() - downAt >= 380){ suppressCellClick = Date.now(); openEvMenu(e, chip); }
+        return;
+      }
+      suppressCellClick = Date.now();
+      if(!dragging) return;
+      if(onTrash){
+        state.events = state.events.filter(x=>x.id!==e.id);
+        save(); renderAll(); toast("予定を削除しました 🗑");
+      }else if(hl && hl.dataset.key && hl.dataset.key !== dayKey){
+        const delta = diffDays(parseKey(dayKey), parseKey(hl.dataset.key));
+        e.start = dkey(addDays(parseKey(e.start), delta));
+        e.end = dkey(addDays(parseKey(e.end), delta));
+        save(); renderAll();
+        toast("予定を " + fmtJP(parseKey(e.start)) + " に移動しました 📅");
+      }
+    };
+    window.addEventListener("pointermove", move);
+    window.addEventListener("pointerup", up);
+    window.addEventListener("pointercancel", up);
+  });
+}
+/* 設定・バックアップ */
+const THEMES={
+  pink:{name:"さくらピンク",main:"#ff7aa8",deep:"#f4528b",soft:"#ffe3ee",bg:"#fff6f9",line:"#f6dbe6",hero2:"#ffb3c9",grad:["#ffeef5","#fff9f4","#f3fbf8"],meta:"#ff8fab"},
+  mint:{name:"ミント",main:"#2fbfa5",deep:"#159a80",soft:"#dcf7f1",bg:"#f2fbf8",line:"#cdeee5",hero2:"#8fe3cf",grad:["#e6f8f2","#fbfdf9","#fdf3f8"],meta:"#2fbfa5"},
+  blue:{name:"あおぞら",main:"#5b9bd5",deep:"#3a7bd5",soft:"#e0eefb",bg:"#f4f9ff",line:"#d3e4f5",hero2:"#a9cdf2",grad:["#e8f2fd","#fafdff","#f3fbf8"],meta:"#5b9bd5"},
+  lav:{name:"ラベンダー",main:"#9b8cf2",deep:"#7a68e0",soft:"#e9e5fd",bg:"#f8f6ff",line:"#ddd6fa",hero2:"#c3b8f7",grad:["#f0edfe","#fcfaff","#f3fbf8"],meta:"#9b8cf2"},
+  orange:{name:"オレンジ",main:"#ff9f43",deep:"#f08c00",soft:"#ffedd6",bg:"#fffaf2",line:"#f7e3c3",hero2:"#ffc98a",grad:["#fff3e0","#fffdf8","#f3fbf8"],meta:"#ff9f43"}
+};
+function hexA(hex,a){ const n=parseInt(hex.slice(1),16); return "rgba("+(n>>16&255)+","+(n>>8&255)+","+(n&255)+","+a+")"; }
+function buildThemePicker(){
+  const box=$("themePicker"); if(!box) return; box.innerHTML="";
+  Object.entries(THEMES).forEach(([key,t])=>{
+    const b=document.createElement("button");
+    b.type="button"; b.dataset.theme=key; b.title=t.name; b.setAttribute("aria-label",t.name);
+    b.style.background=t.main;
+    b.addEventListener("click", ()=>{ state.settings.theme=key; save(); applyTheme(key); toast("カレンダーの色を「"+t.name+"」にしました 🎨"); });
+    box.appendChild(b);
+  });
+}
+function applyTheme(key){
+  const t=THEMES[key]||THEMES.pink; const r=document.documentElement.style;
+  r.setProperty("--pink",t.main); r.setProperty("--pink-deep",t.deep);
+  r.setProperty("--pink-soft",t.soft); r.setProperty("--pink-bg",t.bg);
+  r.setProperty("--line",t.line); r.setProperty("--hero2",t.hero2);
+  r.setProperty("--shadow","0 4px 18px "+hexA(t.deep,.14));
+  document.body.style.background="linear-gradient(180deg,"+t.grad[0]+" 0%,"+t.grad[1]+" 55%,"+t.grad[2]+" 100%)";
+  const meta=document.querySelector('meta[name="theme-color"]'); if(meta) meta.setAttribute("content",t.meta);
+  document.querySelectorAll("#themePicker button").forEach(b=>b.classList.toggle("sel",b.dataset.theme===key));
+  setAppIcon(t);
+}
+function rr(x,a,b,w,h,r){ x.beginPath(); x.moveTo(a+r,b); x.arcTo(a+w,b,a+w,b+h,r); x.arcTo(a+w,b+h,a,b+h,r); x.arcTo(a,b+h,a,b,r); x.arcTo(a,b,a+w,b,r); x.closePath(); }
+function setAppIcon(t){
+  try{
+    const cv=document.createElement("canvas"); cv.width=512; cv.height=512;
+    const x=cv.getContext("2d"); if(!x) return;
+    rr(x,16,16,480,480,110); x.fillStyle=t.soft; x.fill();
+    x.save(); rr(x,66,116,380,330,36); x.clip();
+    x.fillStyle="#ffffff"; x.fillRect(66,116,380,330);
+    x.fillStyle=t.main; x.fillRect(66,116,380,90);
+    x.restore();
+    x.fillStyle=t.deep; rr(x,140,76,34,76,17); x.fill(); rr(x,338,76,34,76,17); x.fill();
+    x.fillStyle=t.main;
+    x.fill(new Path2D("M256 396c-64-44-96-76-96-112 0-27 20-46 45-46 21 0 40 12 51 30 11-18 30-30 51-30 25 0 45 19 45 46 0 36-32 68-96 112z"));
+    x.fillStyle=t.hero2;
+    [[150,262],[362,262]].forEach(c=>{ x.beginPath(); x.arc(c[0],c[1],11,0,7); x.fill(); });
+    x.fillStyle="#bfe9dd";
+    [[150,330],[362,330]].forEach(c=>{ x.beginPath(); x.arc(c[0],c[1],11,0,7); x.fill(); });
+    const url=cv.toDataURL("image/png");
+    const at=document.querySelector('link[rel="apple-touch-icon"]'); if(at) at.href=url;
+    const fav=document.querySelector('link[rel="icon"]'); if(fav){ fav.href=url; fav.type="image/png"; }
+    try{
+      const man={name:"みきのマイカレンダー",short_name:"マイカレンダー",start_url:"./index.html",display:"standalone",background_color:t.bg,theme_color:t.meta,description:"生理と有給をかわいく記録するカレンダー",icons:[{src:url,sizes:"512x512",type:"image/png",purpose:"any"}]};
+      const ml=document.querySelector('link[rel="manifest"]');
+      if(ml) ml.href=URL.createObjectURL(new Blob([JSON.stringify(man)],{type:"application/json"}));
+    }catch(e){}
+  }catch(e){}
+}
+
+$("exportBtn").addEventListener("click", ()=>{
+  const blob = new Blob([JSON.stringify(state,null,2)], {type:"application/json"});
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = "takashi-calendar-backup-"+todayKey+".json";
+  a.click(); URL.revokeObjectURL(a.href);
+  toast("バックアップを保存しました 💾");
+});
+$("importBtn").addEventListener("click", ()=>$("importFile").click());
+$("importFile").addEventListener("change", e=>{
+  const f = e.target.files[0]; if(!f) return;
+  const rd = new FileReader();
+  rd.onload = ()=>{
+    try{
+      const s = JSON.parse(rd.result);
+      if(!s || typeof s!=="object" || !s.events) throw new Error("bad");
+      state = normalize(s); save();
+      applyTheme(state.settings.theme||"blue");
+      renderAll(); toast("バックアップを読み込みました 📂");
+    }catch(err){ toast("読み込めませんでした。バックアップファイルを選んでね"); }
+    e.target.value="";
+  };
+  rd.readAsText(f);
+});
+
+let toastTimer=null;
+function toast(msg){
+  const t=$("toast"); t.textContent=msg; t.classList.add("on");
+  clearTimeout(toastTimer); toastTimer=setTimeout(()=>t.classList.remove("on"),2300);
+}
+
+buildThemePicker();
+applyTheme(state.settings.theme||"blue");
+renderAll();
+if("serviceWorker" in navigator){ navigator.serviceWorker.register("sw.js").catch(()=>{}); }
+</script>
+</body>
+</html>
