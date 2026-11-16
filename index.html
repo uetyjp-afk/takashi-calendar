@@ -413,7 +413,7 @@ input,textarea{-webkit-user-select:text;user-select:text}
     <div id="ddEvents"></div>
   </div>
 
-  <footer class="note">データはこの端末の中だけに保存されます<br>ときどきバックアップ保存をしておくと安心です<br><span id="appVer">たかしのカレンダー v23</span></footer>
+  <footer class="note">データはこの端末の中だけに保存されます<br>ときどきバックアップ保存をしておくと安心です<br><span id="appVer">たかしのカレンダー v24</span></footer>
 </div>
 
 <!-- 設定画面 -->
@@ -442,7 +442,7 @@ input,textarea{-webkit-user-select:text;user-select:text}
       <button id="gSyncBtn">🔄 Googleと同期する</button>
       <button id="gDiscBtn" style="display:none">連携を解除</button>
     </div>
-    <p class="hint">同期の範囲は、メインのカレンダーの予定（過去3か月〜1年先）です。アプリで作った予定はアプリの内容が優先、Googleで作った予定はGoogleの内容が優先されます。Googleの繰り返し予定は取り込みのみです。</p>
+    <p class="hint">一度「同期する」を押して連携すると、次からはアプリを開いたときに自動で同期を試みます（許可を更新できないときは、もう一度ボタンを押してください）。同期の範囲は、メインのカレンダーの予定（過去3か月〜1年先）です。アプリで作った予定はアプリの内容が優先、Googleで作った予定はGoogleの内容が優先されます。Googleの繰り返し予定は取り込みのみです。</p>
     <p class="hint" id="storageInfo"></p>
   </div>
     <div class="sheet-btns">
@@ -1414,7 +1414,7 @@ function gUpdateUI(){
   const disc = $("gDiscBtn"); if(disc) disc.style.display = gToken ? "" : "none";
   if(state.gSyncAt) gSetStatus("最終同期：" + new Date(state.gSyncAt).toLocaleString("ja-JP") + (gToken ? "（連携中）" : ""));
 }
-function gEnsureToken(){
+function gEnsureToken(silent){
   return new Promise((resolve, reject)=>{
     if(gToken && Date.now() < gTokenExp - 60000) return resolve(gToken);
     if(!window.google || !google.accounts || !google.accounts.oauth2) return reject(new Error("Googleの読み込みがまだです。通信のよい場所でもう一度押してください"));
@@ -1423,11 +1423,11 @@ function gEnsureToken(){
       scope: "https://www.googleapis.com/auth/calendar.events",
       callback: (resp)=>{
         if(resp && resp.access_token){ gToken = resp.access_token; gTokenExp = Date.now() + (Number(resp.expires_in)||3600)*1000; resolve(gToken); }
-        else reject(new Error("Googleの許可が得られませんでした"));
+        else reject(new Error(silent ? "自動では許可を更新できませんでした" : "Googleの許可が得られませんでした"));
       },
-      error_callback: (err)=>{ reject(new Error("Google連携でエラーが出ました（" + (err && err.type ? err.type : "不明") + "）")); }
+      error_callback: (err)=>{ reject(new Error(silent ? "自動では許可を更新できませんでした" : "Google連携でエラーが出ました（" + (err && err.type ? err.type : "不明") + "）")); }
     });
-    tc.requestAccessToken({prompt: ""});
+    tc.requestAccessToken({prompt: silent ? "none" : ""});
   });
 }
 async function gFetch(path, method, body){
@@ -1476,11 +1476,12 @@ function gToLocal(ge){
   }else return null;
   return t;
 }
-async function gSync(){
-  const btn = $("gSyncBtn"); if(btn) btn.disabled = true;
-  gSetStatus("Googleと同期中…");
+let gAutoNote = "";
+async function gSyncRun(quiet){
+  const btn = $("gSyncBtn"); if(btn && !quiet) btn.disabled = true;
+  if(!quiet) gSetStatus("Googleと同期中…");
   try{
-    await gEnsureToken();
+    await gEnsureToken(quiet);
     let pushed = 0, pulled = 0, deleted = 0;
     const trash = (state.gTrash || []).slice();
     for(const gid of trash){
@@ -1531,19 +1532,32 @@ async function gSync(){
     }
     state.gSyncAt = Date.now();
     save(); renderAll();
-    toast("Googleと同期しました（送信" + pushed + "件・取込" + pulled + "件" + (deleted ? "・削除" + deleted + "件" : "") + "）📅");
+    if(!quiet) toast("Googleと同期しました（送信" + pushed + "件・取込" + pulled + "件" + (deleted ? "・削除" + deleted + "件" : "") + "）📅");
   }catch(err){
-    gSetStatus("同期できませんでした：" + err.message);
-    toast("同期できませんでした：" + err.message);
+    if(quiet){ gAutoNote = "自動同期できませんでした。設定の「Googleと同期する」を押してください（" + err.message + "）"; }
+    else { gSetStatus("同期できませんでした：" + err.message); toast("同期できませんでした：" + err.message); }
   }finally{
     if(btn) btn.disabled = false;
     gUpdateUI();
+    if(gAutoNote){ gSetStatus(gAutoNote); gAutoNote = ""; }
   }
+}
+function gSync(){ return gSyncRun(false); }
+/* アプリを開いたときの自動同期（一度でも連携したことがある場合だけ、静かに試みる） */
+let gAutoTried = false;
+async function gAutoSync(){
+  if(gAutoTried) return; gAutoTried = true;
+  if(!state.gSyncAt) return;
+  if(typeof navigator !== "undefined" && navigator.onLine === false) return;
+  for(let i = 0; i < 24 && !(window.google && google.accounts && google.accounts.oauth2); i++) await new Promise(r=>setTimeout(r, 250));
+  if(!window.google || !google.accounts || !google.accounts.oauth2) return;
+  await gSyncRun(true);
 }
 $("gSyncBtn").addEventListener("click", gSync);
 $("gDiscBtn").addEventListener("click", ()=>{
   if(gToken && window.google && google.accounts && google.accounts.oauth2){ try{ google.accounts.oauth2.revoke(gToken, ()=>{}); }catch(e){} }
   gToken = null; gTokenExp = 0;
+  state.gSyncAt = 0; save();
   gUpdateUI();
   gSetStatus("連携を解除しました（予定データはそのまま残ります）");
 });
@@ -1642,7 +1656,7 @@ function applyOwnerName(){
   const n = appName();
   $("appTitle").textContent = "📅 " + n;
   document.title = n;
-  $("appVer").textContent = n + " v23";
+  $("appVer").textContent = n + " v24";
   applyTheme(state.settings.theme || "blue");
 }
 const onInput = $("ownerNameInput");
@@ -1668,6 +1682,7 @@ wpSel.addEventListener("change", ()=>{ state.settings.weatherPlace = wpSel.value
   gUpdateUI();
   renderAll();
   loadWeather();
+  setTimeout(()=>{ gAutoSync(); }, 1200);
 })();
 if("serviceWorker" in navigator){ navigator.serviceWorker.register("sw.js").catch(()=>{}); }
 </script>
