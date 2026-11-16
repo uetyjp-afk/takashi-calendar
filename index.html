@@ -225,6 +225,7 @@ footer.note{text-align:center;color:var(--sub);font-size:11px;margin-top:18px;fo
 .day.drop-hl{outline:3px solid var(--pink-deep);outline-offset:-2px}
 /* 日シートの予定行 */
 .ev-row{display:flex;align-items:center;gap:8px;background:var(--pink-bg);border-radius:12px;padding:8px 10px;margin-bottom:6px;cursor:pointer}
+.ev-map{flex:none;font-size:11.5px;font-weight:800;color:#3a7bd5;text-decoration:none;background:#e8f0fd;border-radius:99px;padding:5px 10px}
 .ev-row .tt{flex:1;font-weight:800;font-size:13.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .ev-row .pd{font-size:11px;color:var(--sub);font-weight:700;flex:none}
 .evt-ic-lg{display:inline-flex;width:22px;height:22px;flex:none}
@@ -412,7 +413,7 @@ input,textarea{-webkit-user-select:text;user-select:text}
     <div id="ddEvents"></div>
   </div>
 
-  <footer class="note">データはこの端末の中だけに保存されます<br>ときどきバックアップ保存をしておくと安心です<br><span id="appVer">たかしのカレンダー v22</span></footer>
+  <footer class="note">データはこの端末の中だけに保存されます<br>ときどきバックアップ保存をしておくと安心です<br><span id="appVer">たかしのカレンダー v23</span></footer>
 </div>
 
 <!-- 設定画面 -->
@@ -770,18 +771,7 @@ function renderDayDetail(){
   const box = $("ddEvents"); box.innerHTML = "";
   const evs = eventsOn(k);
   if(!evs.length) box.innerHTML = '<div class="dd-none">この日の予定はありません</div>';
-  evs.forEach(e=>{
-    const row = document.createElement("div"); row.className = "ev-row";
-    const pd = e.start===e.end ? "" : fmtJP(parseKey(e.start))+"〜"+fmtJP(parseKey(e.end));
-    row.innerHTML = '<span class="evt-ic-lg">'+iconHTML(e.icon)+'</span><span class="dd-main"><span class="tt"></span>'
-      + '<span class="dd-sub">'+timeLabel(e)+'</span>'
-      + (e.place ? '<span class="dd-sub">📍'+esc(e.place)+'</span>' : '')
-      + (e.memo ? '<span class="dd-sub">'+linkify(e.memo)+'</span>' : '')
-      + '</span>' + (pd ? '<span class="pd">'+pd+'</span>' : '');
-    row.querySelector(".tt").textContent = e.title;
-    row.addEventListener("click", ()=>openEventEditor({event:e}));
-    box.appendChild(row);
-  });
+  evs.forEach(e=>box.appendChild(buildEventRow(e)));
 }
 function curView(){ return state.settings.view || "month"; }
 function renderAll(){
@@ -818,6 +808,14 @@ function buildEventRow(e){
     + (e.memo ? '<span class="dd-sub">' + linkify(e.memo) + '</span>' : '')
     + '</span>' + (pd ? '<span class="pd">' + pd + '</span>' : '');
   row.querySelector(".tt").textContent = e.title;
+  if(e.place){
+    const a = document.createElement("a");
+    a.className = "ev-map"; a.textContent = "📍地図";
+    a.href = "https://www.google.com/maps/search/?api=1&query=" + encodeURIComponent(e.place);
+    a.target = "_blank"; a.rel = "noopener";
+    a.addEventListener("click", ev=>ev.stopPropagation());
+    row.appendChild(a);
+  }
   row.addEventListener("click", ()=>openEventEditor({event:e}));
   return row;
 }
@@ -1644,7 +1642,7 @@ function applyOwnerName(){
   const n = appName();
   $("appTitle").textContent = "📅 " + n;
   document.title = n;
-  $("appVer").textContent = n + " v22";
+  $("appVer").textContent = n + " v23";
   applyTheme(state.settings.theme || "blue");
 }
 const onInput = $("ownerNameInput");
