@@ -247,7 +247,9 @@ footer.note{text-align:center;color:var(--sub);font-size:11px;margin-top:18px;fo
 .view-switch button{flex:1;padding:7px 0;border-radius:999px;border:2px solid var(--line);background:#fff;font-weight:800;font-size:13px;color:var(--sub);cursor:pointer;font-family:inherit}
 .view-switch button.on{background:var(--pink-deep);border-color:var(--pink-deep);color:#fff}
 .month-nav.nav-hidden .nav-btn{visibility:hidden}
-.week-grid{display:grid;grid-template-columns:repeat(7,1fr);padding:2px 2px 4px}
+#weekCard{overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none}
+#weekCard::-webkit-scrollbar{display:none}
+.week-grid{display:grid;grid-template-columns:repeat(7,112px);width:max-content;min-width:100%;padding:2px 2px 4px}
 .wk-col{border-left:1px solid var(--line);padding:4px 2px 8px;min-height:168px;cursor:pointer}
 .wk-col:first-child{border-left:none}
 .wk-col.sel{background:var(--pink-bg)}
@@ -409,7 +411,7 @@ input,textarea{-webkit-user-select:text;user-select:text}
     <div id="ddEvents"></div>
   </div>
 
-  <footer class="note">データはこの端末の中だけに保存されます<br>ときどきバックアップ保存をしておくと安心です<br><span id="appVer">たかしのカレンダー v18</span></footer>
+  <footer class="note">データはこの端末の中だけに保存されます<br>ときどきバックアップ保存をしておくと安心です<br><span id="appVer">たかしのカレンダー v19</span></footer>
 </div>
 
 <!-- 設定画面 -->
@@ -845,6 +847,12 @@ function renderWeek(){
     col.addEventListener("click", ()=>{ selKey = k; lastDayKey = k; viewYear = d.getFullYear(); viewMonth = d.getMonth(); renderAll(); });
     grid.appendChild(col);
   }
+  const wcard = $("weekCard"), selCol = grid.children[sel.getDay()];
+  if(wcard && selCol && selCol.getBoundingClientRect){
+    const kr = wcard.getBoundingClientRect(), cr = selCol.getBoundingClientRect();
+    if(cr.left < kr.left) wcard.scrollLeft -= (kr.left - cr.left);
+    else if(cr.right > kr.right) wcard.scrollLeft += (cr.right - kr.right);
+  }
   renderDayDetail();
 }
 
@@ -938,8 +946,8 @@ calCardEl.addEventListener("touchend", e=>{
   swipeX = swipeY = null;
   if(Math.abs(dx) > 55 && Math.abs(dx) > Math.abs(dy)*1.6) changeMonth(dx < 0 ? 1 : -1);
 }, {passive:true});
-/* 週・日表示でも左右スワイプで移動 */
-[$("weekCard"), $("dayCard")].forEach(el=>{
+/* 日表示は左右スワイプで移動（週表示は横スクロールで見るため対象外） */
+[$("dayCard")].forEach(el=>{
   let sx = null, sy = null;
   el.addEventListener("touchstart", e=>{ if(e.touches.length===1){ sx = e.touches[0].clientX; sy = e.touches[0].clientY; } }, {passive:true});
   el.addEventListener("touchend", e=>{
@@ -1622,7 +1630,7 @@ function applyOwnerName(){
   const n = appName();
   $("appTitle").textContent = "📅 " + n;
   document.title = n;
-  $("appVer").textContent = n + " v18";
+  $("appVer").textContent = n + " v19";
   applyTheme(state.settings.theme || "blue");
 }
 const onInput = $("ownerNameInput");
