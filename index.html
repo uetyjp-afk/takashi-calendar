@@ -247,7 +247,7 @@ footer.note{text-align:center;color:var(--sub);font-size:11px;margin-top:18px;fo
 .view-switch button{flex:1;padding:7px 0;border-radius:999px;border:2px solid var(--line);background:#fff;font-weight:800;font-size:13px;color:var(--sub);cursor:pointer;font-family:inherit}
 .view-switch button.on{background:var(--pink-deep);border-color:var(--pink-deep);color:#fff}
 .month-nav.nav-hidden .nav-btn{visibility:hidden}
-#weekCard{overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none}
+#weekCard{overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none;touch-action:pan-x pan-y}
 #weekCard::-webkit-scrollbar{display:none}
 .week-grid{display:grid;grid-template-columns:repeat(7,112px);width:max-content;min-width:100%;padding:2px 2px 4px}
 .wk-col{border-left:1px solid var(--line);padding:4px 2px 8px;min-height:168px;cursor:pointer}
@@ -411,7 +411,7 @@ input,textarea{-webkit-user-select:text;user-select:text}
     <div id="ddEvents"></div>
   </div>
 
-  <footer class="note">データはこの端末の中だけに保存されます<br>ときどきバックアップ保存をしておくと安心です<br><span id="appVer">たかしのカレンダー v19</span></footer>
+  <footer class="note">データはこの端末の中だけに保存されます<br>ときどきバックアップ保存をしておくと安心です<br><span id="appVer">たかしのカレンダー v20</span></footer>
 </div>
 
 <!-- 設定画面 -->
@@ -1630,7 +1630,7 @@ function applyOwnerName(){
   const n = appName();
   $("appTitle").textContent = "📅 " + n;
   document.title = n;
-  $("appVer").textContent = n + " v19";
+  $("appVer").textContent = n + " v20";
   applyTheme(state.settings.theme || "blue");
 }
 const onInput = $("ownerNameInput");
