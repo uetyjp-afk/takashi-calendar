@@ -211,7 +211,7 @@ footer.note{text-align:center;color:var(--sub);font-size:11px;margin-top:18px;fo
 
 /* 予定チップ */
 .day .evts{display:flex;flex-direction:column;gap:2px;width:100%;margin-top:1px}
-.evt{display:flex;align-items:center;gap:1px;touch-action:none;cursor:grab;font-size:11px;font-weight:800;line-height:1.3;padding:1px 2px;border-radius:4px;max-width:none;min-width:0;box-sizing:border-box;margin:0 -2px;position:relative;z-index:2;min-height:17px}
+.evt{display:flex;align-items:center;gap:1px;touch-action:none;cursor:grab;font-size:10px;font-weight:800;line-height:1.3;padding:1px 1px;border-radius:4px;max-width:none;min-width:0;box-sizing:border-box;margin:0 -3px;position:relative;z-index:2;min-height:17px}
 .evt-tt{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0;flex:1}
 .evt.long{z-index:4}
 .evt.long .evt-tt{position:absolute;left:3px;top:50%;transform:translateY(-50%);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:none}
@@ -409,7 +409,7 @@ input,textarea{-webkit-user-select:text;user-select:text}
     <div id="ddEvents"></div>
   </div>
 
-  <footer class="note">データはこの端末の中だけに保存されます<br>ときどきバックアップ保存をしておくと安心です<br><span id="appVer">たかしのカレンダー v17</span></footer>
+  <footer class="note">データはこの端末の中だけに保存されます<br>ときどきバックアップ保存をしておくと安心です<br><span id="appVer">たかしのカレンダー v18</span></footer>
 </div>
 
 <!-- 設定画面 -->
@@ -1622,7 +1622,7 @@ function applyOwnerName(){
   const n = appName();
   $("appTitle").textContent = "📅 " + n;
   document.title = n;
-  $("appVer").textContent = n + " v17";
+  $("appVer").textContent = n + " v18";
   applyTheme(state.settings.theme || "blue");
 }
 const onInput = $("ownerNameInput");
