@@ -352,6 +352,7 @@ input,textarea{-webkit-user-select:text;user-select:text}
 }
 .toast.on{transform:translateX(-50%);opacity:1}
 </style>
+<script src="https://accounts.google.com/gsi/client" async defer></script>
 </head>
 <body>
 <div class="wrap">
@@ -408,7 +409,7 @@ input,textarea{-webkit-user-select:text;user-select:text}
     <div id="ddEvents"></div>
   </div>
 
-  <footer class="note">データはこの端末の中だけに保存されます<br>ときどきバックアップ保存をしておくと安心です<br><span id="appVer">たかしのカレンダー v16</span></footer>
+  <footer class="note">データはこの端末の中だけに保存されます<br>ときどきバックアップ保存をしておくと安心です<br><span id="appVer">たかしのカレンダー v17</span></footer>
 </div>
 
 <!-- 設定画面 -->
@@ -431,6 +432,13 @@ input,textarea{-webkit-user-select:text;user-select:text}
     <div class="picker-lbl" style="margin-top:14px">🌦 天気の地域</div>
     <select id="weatherPlaceSel" class="ev-text" style="margin-top:6px"></select>
     <p class="hint">選んだ地域の天気を、日の詳細に出します（16日先まで）。</p>
+    <div class="picker-lbl" style="margin-top:14px">📅 Googleカレンダー連携</div>
+    <p class="hint" id="gStatus">未連携（「同期する」を押すと、Googleの許可画面が出ます）</p>
+    <div class="backup-btns">
+      <button id="gSyncBtn">🔄 Googleと同期する</button>
+      <button id="gDiscBtn" style="display:none">連携を解除</button>
+    </div>
+    <p class="hint">同期の範囲は、メインのカレンダーの予定（過去3か月〜1年先）です。アプリで作った予定はアプリの内容が優先、Googleで作った予定はGoogleの内容が優先されます。Googleの繰り返し予定は取り込みのみです。</p>
     <p class="hint" id="storageInfo"></p>
   </div>
     <div class="sheet-btns">
@@ -575,6 +583,8 @@ async function initData(){
 function normalize(s){
   s.settings = Object.assign({theme:"blue", weatherPlace:"広島市", view:"month", ownerName:"たかし"}, s.settings||{});
   s.events = s.events||[];
+  s.gTrash = s.gTrash||[];
+  s.gSyncAt = s.gSyncAt||0;
   return s;
 }
 function save(){
@@ -1115,6 +1125,8 @@ $("evSaveBtn").addEventListener("click", ()=>{
 $("evDeleteBtn").addEventListener("click", ()=>{
   if(!evEditId) return;
   if(!confirm("この予定を削除しますか？")) return;
+  const delEv = state.events.find(x=>x.id===evEditId);
+  if(delEv && delEv.gid) state.gTrash.push(delEv.gid);
   state.events = state.events.filter(x=>x.id!==evEditId);
   save(); renderAll(); closeEventEditor();
   toast("予定を削除しました");
@@ -1290,6 +1302,7 @@ function closeEvMenu(){ $("evMenu").classList.remove("on"); menuEvent = null; }
 $("evMenuEdit").addEventListener("click", ()=>{ const e = menuEvent; closeEvMenu(); if(e) openEventEditor({event:e}); });
 $("evMenuDel").addEventListener("click", ()=>{
   const e = menuEvent; closeEvMenu(); if(!e) return;
+  if(e.gid) state.gTrash.push(e.gid);
   state.events = state.events.filter(x=>x.id!==e.id);
   save(); renderAll(); toast("予定を削除しました 🗑");
 });
@@ -1357,6 +1370,7 @@ function attachChipDrag(chip, e, dayKey){
       suppressCellClick = Date.now();
       if(!dragging) return;
       if(onTrash){
+        if(e.gid) state.gTrash.push(e.gid);
         state.events = state.events.filter(x=>x.id!==e.id);
         save(); renderAll(); toast("予定を削除しました 🗑");
       }else if(hl && hl.dataset.key && hl.dataset.key !== dayKey){
@@ -1372,6 +1386,148 @@ function attachChipDrag(chip, e, dayKey){
     window.addEventListener("pointercancel", up);
   });
 }
+/* Googleカレンダー連携（GISトークン方式） */
+const GCLIENT_ID = "296658765807-qrhcfmtjkjspnv37lomsmk6uremcvrg4.apps.googleusercontent.com";
+let gToken = null, gTokenExp = 0;
+function gSetStatus(t){ const el = $("gStatus"); if(el) el.textContent = t; }
+function gUpdateUI(){
+  const disc = $("gDiscBtn"); if(disc) disc.style.display = gToken ? "" : "none";
+  if(state.gSyncAt) gSetStatus("最終同期：" + new Date(state.gSyncAt).toLocaleString("ja-JP") + (gToken ? "（連携中）" : ""));
+}
+function gEnsureToken(){
+  return new Promise((resolve, reject)=>{
+    if(gToken && Date.now() < gTokenExp - 60000) return resolve(gToken);
+    if(!window.google || !google.accounts || !google.accounts.oauth2) return reject(new Error("Googleの読み込みがまだです。通信のよい場所でもう一度押してください"));
+    const tc = google.accounts.oauth2.initTokenClient({
+      client_id: GCLIENT_ID,
+      scope: "https://www.googleapis.com/auth/calendar.events",
+      callback: (resp)=>{
+        if(resp && resp.access_token){ gToken = resp.access_token; gTokenExp = Date.now() + (Number(resp.expires_in)||3600)*1000; resolve(gToken); }
+        else reject(new Error("Googleの許可が得られませんでした"));
+      },
+      error_callback: (err)=>{ reject(new Error("Google連携でエラーが出ました（" + (err && err.type ? err.type : "不明") + "）")); }
+    });
+    tc.requestAccessToken({prompt: ""});
+  });
+}
+async function gFetch(path, method, body){
+  const r = await fetch("https://www.googleapis.com/calendar/v3/" + path, {
+    method: method || "GET",
+    headers: { "Authorization": "Bearer " + gToken, "Content-Type": "application/json" },
+    body: body ? JSON.stringify(body) : undefined
+  });
+  if(r.status === 401){ gToken = null; throw new Error("Googleの許可の期限が切れました。もう一度「同期する」を押してください"); }
+  if(r.status === 204) return null;
+  const j = await r.json().catch(()=>null);
+  if(!r.ok) throw new Error("Googleカレンダーでエラー（" + r.status + "）" + (j && j.error && j.error.message ? "：" + j.error.message : ""));
+  return j;
+}
+function gDateAdd(key, n){ const d = parseKey(key); d.setDate(d.getDate()+n); return dkey(d); }
+function lToGoogle(e){
+  const g = { summary: e.title || "（無題）" };
+  if(e.place) g.location = e.place;
+  if(e.memo) g.description = e.memo;
+  if(e.allDay === false){
+    g.start = { dateTime: e.start + "T" + (e.st||"09:00") + ":00+09:00", timeZone: "Asia/Tokyo" };
+    g.end = { dateTime: (e.end||e.start) + "T" + (e.et||"10:00") + ":00+09:00", timeZone: "Asia/Tokyo" };
+  }else{
+    g.start = { date: e.start };
+    g.end = { date: gDateAdd(e.end || e.start, 1) };
+  }
+  return g;
+}
+function gToLocal(ge){
+  const t = { title: ge.summary || "（無題）", place: ge.location || "", memo: "" };
+  if(ge.description){ const d = document.createElement("div"); d.innerHTML = ge.description; t.memo = (d.textContent || "").trim(); }
+  if(ge.start && ge.start.date){
+    t.allDay = true; t.start = ge.start.date;
+    t.end = gDateAdd(ge.end && ge.end.date ? ge.end.date : ge.start.date, -1);
+    if(t.end < t.start) t.end = t.start;
+    t.st = ""; t.et = "";
+  }else if(ge.start && ge.start.dateTime){
+    t.allDay = false;
+    t.start = ge.start.dateTime.slice(0,10);
+    t.st = ge.start.dateTime.slice(11,16);
+    if(ge.end && ge.end.dateTime){
+      const ed = ge.end.dateTime.slice(0,10);
+      t.et = ed > t.start ? "23:59" : ge.end.dateTime.slice(11,16);
+    }else t.et = t.st;
+    t.end = t.start;
+  }else return null;
+  return t;
+}
+async function gSync(){
+  const btn = $("gSyncBtn"); if(btn) btn.disabled = true;
+  gSetStatus("Googleと同期中…");
+  try{
+    await gEnsureToken();
+    let pushed = 0, pulled = 0, deleted = 0;
+    const trash = (state.gTrash || []).slice();
+    for(const gid of trash){
+      try{ await gFetch("calendars/primary/events/" + encodeURIComponent(gid), "DELETE"); }
+      catch(err){ if(!/40[34]|410/.test(err.message)) throw err; }
+      deleted++;
+    }
+    state.gTrash = [];
+    const now = new Date();
+    const tmin = new Date(now.getFullYear(), now.getMonth()-3, 1).toISOString();
+    const tmax = new Date(now.getFullYear()+1, now.getMonth(), 1).toISOString();
+    const gmap = {};
+    let pageToken = "";
+    for(let page = 0; page < 5; page++){
+      const q = "calendars/primary/events?singleEvents=true&orderBy=startTime&maxResults=250&timeZone=Asia/Tokyo&timeMin=" + encodeURIComponent(tmin) + "&timeMax=" + encodeURIComponent(tmax) + (pageToken ? "&pageToken=" + encodeURIComponent(pageToken) : "");
+      const res = await gFetch(q);
+      (res.items || []).forEach(ge=>{ if(ge.status !== "cancelled") gmap[ge.id] = ge; });
+      pageToken = res.nextPageToken || "";
+      if(!pageToken) break;
+    }
+    Object.values(gmap).forEach(ge=>{
+      const conv = gToLocal(ge); if(!conv) return;
+      const loc = state.events.find(x=>x.gid === ge.id);
+      if(loc){
+        if(loc.src === "g"){ loc.title = conv.title; loc.start = conv.start; loc.end = conv.end; loc.place = conv.place; loc.memo = conv.memo; loc.allDay = conv.allDay; loc.st = conv.st; loc.et = conv.et; }
+        return;
+      }
+      const adopt = state.events.find(x=>!x.gid && x.title === conv.title && x.start === conv.start && (x.allDay === false) === (conv.allDay === false));
+      if(adopt){ adopt.gid = ge.id; return; }
+      state.events.push({ id: "e" + Date.now().toString(36) + Math.floor(Math.random()*999999), title: conv.title, icon: "", color: "#5b9bd5", start: conv.start, end: conv.end, place: conv.place, memo: conv.memo, allDay: conv.allDay, st: conv.st, et: conv.et, gid: ge.id, src: "g" });
+      pulled++;
+    });
+    for(const e of state.events){
+      if(e.src === "g") continue;
+      const body = lToGoogle(e);
+      if(!e.gid){
+        const res = await gFetch("calendars/primary/events", "POST", body);
+        if(res && res.id) e.gid = res.id;
+        pushed++;
+      }else{
+        try{ await gFetch("calendars/primary/events/" + encodeURIComponent(e.gid), "PUT", body); }
+        catch(err){
+          if(/404|410/.test(err.message)){ const res = await gFetch("calendars/primary/events", "POST", body); if(res && res.id) e.gid = res.id; }
+          else throw err;
+        }
+        pushed++;
+      }
+    }
+    state.gSyncAt = Date.now();
+    save(); renderAll();
+    toast("Googleと同期しました（送信" + pushed + "件・取込" + pulled + "件" + (deleted ? "・削除" + deleted + "件" : "") + "）📅");
+  }catch(err){
+    gSetStatus("同期できませんでした：" + err.message);
+    toast("同期できませんでした：" + err.message);
+  }finally{
+    if(btn) btn.disabled = false;
+    gUpdateUI();
+  }
+}
+$("gSyncBtn").addEventListener("click", gSync);
+$("gDiscBtn").addEventListener("click", ()=>{
+  if(gToken && window.google && google.accounts && google.accounts.oauth2){ try{ google.accounts.oauth2.revoke(gToken, ()=>{}); }catch(e){} }
+  gToken = null; gTokenExp = 0;
+  gUpdateUI();
+  gSetStatus("連携を解除しました（予定データはそのまま残ります）");
+});
+
 /* 設定・バックアップ */
 const THEMES={
   pink:{name:"さくらピンク",main:"#ff7aa8",deep:"#f4528b",soft:"#ffe3ee",bg:"#fff6f9",line:"#f6dbe6",hero2:"#ffb3c9",grad:["#ffeef5","#fff9f4","#f3fbf8"],meta:"#ff8fab"},
@@ -1466,7 +1622,7 @@ function applyOwnerName(){
   const n = appName();
   $("appTitle").textContent = "📅 " + n;
   document.title = n;
-  $("appVer").textContent = n + " v16";
+  $("appVer").textContent = n + " v17";
   applyTheme(state.settings.theme || "blue");
 }
 const onInput = $("ownerNameInput");
@@ -1489,6 +1645,7 @@ wpSel.addEventListener("change", ()=>{ state.settings.weatherPlace = wpSel.value
   $("storageInfo").textContent = idb ? "データの保存先：IndexedDB（この端末の中）" : "データの保存先：ブラウザの保存領域（この端末の中）";
   buildThemePicker();
   applyOwnerName();
+  gUpdateUI();
   renderAll();
   loadWeather();
 })();
