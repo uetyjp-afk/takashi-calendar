@@ -412,7 +412,7 @@ input,textarea{-webkit-user-select:text;user-select:text}
     <div id="ddEvents"></div>
   </div>
 
-  <footer class="note">データはこの端末の中だけに保存されます<br>ときどきバックアップ保存をしておくと安心です<br><span id="appVer">たかしのカレンダー v21</span></footer>
+  <footer class="note">データはこの端末の中だけに保存されます<br>ときどきバックアップ保存をしておくと安心です<br><span id="appVer">たかしのカレンダー v22</span></footer>
 </div>
 
 <!-- 設定画面 -->
@@ -1078,6 +1078,17 @@ function syncEvTimes(){
   $("evDates").style.display = allDay ? "" : "none";
   $("evTimes").style.display = allDay ? "none" : "";
 }
+/* 開始時間を変えたら、終了時間は自動で1時間後にする（終了時間は手でも変えられる） */
+function evAutoEnd(){
+  const st = $("evStartTime").value;
+  if(!st) return;
+  const parts = st.split(":");
+  let mins = Number(parts[0])*60 + Number(parts[1]||0) + 60;
+  if(mins > 23*60+59) mins = 23*60+59;
+  $("evEndTime").value = String(Math.floor(mins/60)).padStart(2,"0") + ":" + String(mins%60).padStart(2,"0");
+}
+$("evStartTime").addEventListener("input", evAutoEnd);
+$("evStartTime").addEventListener("change", evAutoEnd);
 $("evAllDay").addEventListener("change", ()=>{
   if($("evAllDay").checked){
     if($("evDay").value){ $("evStart").value = $("evDay").value; $("evEnd").value = $("evDay").value; }
@@ -1633,7 +1644,7 @@ function applyOwnerName(){
   const n = appName();
   $("appTitle").textContent = "📅 " + n;
   document.title = n;
-  $("appVer").textContent = n + " v21";
+  $("appVer").textContent = n + " v22";
   applyTheme(state.settings.theme || "blue");
 }
 const onInput = $("ownerNameInput");
