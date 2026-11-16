@@ -408,7 +408,7 @@ input,textarea{-webkit-user-select:text;user-select:text}
     <div id="ddEvents"></div>
   </div>
 
-  <footer class="note">データはこの端末の中だけに保存されます<br>ときどきバックアップ保存をしておくと安心です<br><span id="appVer">たかしのカレンダー v15</span></footer>
+  <footer class="note">データはこの端末の中だけに保存されます<br>ときどきバックアップ保存をしておくと安心です<br><span id="appVer">たかしのカレンダー v16</span></footer>
 </div>
 
 <!-- 設定画面 -->
@@ -539,11 +539,24 @@ async function initData(){
   idb = await idbOpen();
   if(idb){
     const saved = await idbGet("state");
+    let fromIdb = null;
     if(typeof saved === "string"){
-      try{ const s = JSON.parse(saved); if(s && s.events){ state = normalize(s); return; } }catch(e){}
+      try{ const s = JSON.parse(saved); if(s && s.events) fromIdb = s; }catch(e){}
     }
+    const fromLs = lsLoad();
+    if(fromIdb && fromLs){
+      // 2つの保存先が食い違うときは、保存時刻の新しい方を正とする
+      if((fromLs.savedAt||0) > (fromIdb.savedAt||0)){
+        state = normalize(fromLs);
+        idbPut("state", JSON.stringify(state)); // 古い方を新しい内容で直す
+      }else{
+        state = normalize(fromIdb);
+      }
+      return;
+    }
+    if(fromIdb){ state = normalize(fromIdb); return; }
     // 初回：localStorageの既存データをIndexedDBへ移行する（元のデータは消さない）
-    const old = lsLoad();
+    const old = fromLs;
     if(old){
       state = old;
       const okWrite = await idbPut("state", JSON.stringify(old));
@@ -565,6 +578,7 @@ function normalize(s){
   return s;
 }
 function save(){
+  state.savedAt = Date.now();
   const json = JSON.stringify(state);
   try{ localStorage.setItem(KEY, json); }catch(e){} // 保険として同じ内容を書き続ける
   if(idb) idbPut("state", json);
@@ -1452,7 +1466,7 @@ function applyOwnerName(){
   const n = appName();
   $("appTitle").textContent = "📅 " + n;
   document.title = n;
-  $("appVer").textContent = n + " v15";
+  $("appVer").textContent = n + " v16";
   applyTheme(state.settings.theme || "blue");
 }
 const onInput = $("ownerNameInput");
