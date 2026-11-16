@@ -210,6 +210,7 @@ footer.note{text-align:center;color:var(--sub);font-size:11px;margin-top:18px;fo
 .auto-note{text-align:center;font-size:11px;color:var(--sub);margin-top:9px;font-weight:500}
 
 /* 予定チップ */
+.day .wx-bg{position:absolute;right:3px;bottom:3px;font-size:19px;line-height:1;opacity:.25;z-index:0;pointer-events:none}
 .day .evts{display:flex;flex-direction:column;gap:2px;width:100%;margin-top:1px}
 .evt{display:flex;align-items:center;gap:1px;touch-action:none;cursor:grab;font-size:10px;font-weight:800;line-height:1.3;padding:1px 1px;border-radius:4px;max-width:none;min-width:0;box-sizing:border-box;margin:0 -3px;position:relative;z-index:2;min-height:17px}
 .evt-tt{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0;flex:1}
@@ -411,7 +412,7 @@ input,textarea{-webkit-user-select:text;user-select:text}
     <div id="ddEvents"></div>
   </div>
 
-  <footer class="note">データはこの端末の中だけに保存されます<br>ときどきバックアップ保存をしておくと安心です<br><span id="appVer">たかしのカレンダー v20</span></footer>
+  <footer class="note">データはこの端末の中だけに保存されます<br>ときどきバックアップ保存をしておくと安心です<br><span id="appVer">たかしのカレンダー v21</span></footer>
 </div>
 
 <!-- 設定画面 -->
@@ -668,7 +669,7 @@ async function loadWeather(){
   const place = PLACES.find(x=>x.name === (state.settings.weatherPlace || "広島市")) || PLACES[5];
   try{
     const c = JSON.parse(localStorage.getItem("takashi-calendar-weather") || "null");
-    if(c && c.place === place.name && c.date === todayKey && c.data){ weatherData = c.data; renderDayDetail(); if(curView() === "day") renderDayView(); return; }
+    if(c && c.place === place.name && c.date === todayKey && c.data){ weatherData = c.data; renderDayDetail(); if(curView() === "day") renderDayView(); if(curView() === "month") renderCalendar(); return; }
   }catch(e){}
   try{
     const url = "https://api.open-meteo.com/v1/forecast?latitude=" + place.lat + "&longitude=" + place.lon
@@ -682,7 +683,7 @@ async function loadWeather(){
     if(Object.keys(data).length){
       weatherData = data;
       try{ localStorage.setItem("takashi-calendar-weather", JSON.stringify({place: place.name, date: todayKey, data})); }catch(e){}
-      renderDayDetail(); if(curView() === "day") renderDayView();
+      renderDayDetail(); if(curView() === "day") renderDayView(); if(curView() === "month") renderCalendar();
     }
   }catch(e){ /* オフライン等のときは天気を出さない */ }
 }
@@ -735,7 +736,9 @@ function renderCalendar(){
     });
     if(evs.length>4) evHtml += '<div class="evt-more">+'+(evs.length-4)+'件</div>';
     cell.dataset.key = k;
-    cell.innerHTML = '<div class="dnum">'+d.getDate()+'</div>'
+    const wxd = weatherData && weatherData[k];
+    cell.innerHTML = (wxd ? '<span class="wx-bg">'+weatherInfo(wxd.code)[0]+'</span>' : '')
+      + '<div class="dnum">'+d.getDate()+'</div>'
       + (evHtml ? '<div class="evts">'+evHtml+'</div>' : '');
     cell.querySelectorAll(".evt").forEach((chip, idx)=>{ const e2 = evs[idx]; if(e2) attachChipDrag(chip, e2, k); });
     cell.addEventListener("click", ()=>{
@@ -1630,7 +1633,7 @@ function applyOwnerName(){
   const n = appName();
   $("appTitle").textContent = "📅 " + n;
   document.title = n;
-  $("appVer").textContent = n + " v20";
+  $("appVer").textContent = n + " v21";
   applyTheme(state.settings.theme || "blue");
 }
 const onInput = $("ownerNameInput");
