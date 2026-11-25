@@ -67,6 +67,15 @@ header.app p{margin:0;color:var(--sub);font-size:10.5px;font-weight:500}
 .week{display:grid;grid-template-columns:repeat(7,1fr);text-align:center;font-size:12px;font-weight:800;color:var(--sub);padding:1px 0 4px;position:sticky;top:0;background:var(--card);z-index:6}
 .week div:nth-child(1){color:var(--sun)} .week div:nth-child(7){color:var(--sat)}
 .grid{display:grid;grid-template-columns:repeat(7,1fr);gap:0;border-top:1px solid #f0d7e2;border-left:1px solid #f0d7e2;overflow:hidden}
+@keyframes flipOutNext{from{transform:perspective(1100px) rotateY(0deg);opacity:1}to{transform:perspective(1100px) rotateY(-24deg) translateX(-16px);opacity:.2}}
+@keyframes flipInNext{from{transform:perspective(1100px) rotateY(18deg) translateX(12px);opacity:.2}to{transform:perspective(1100px) rotateY(0deg);opacity:1}}
+@keyframes flipOutPrev{from{transform:perspective(1100px) rotateY(0deg);opacity:1}to{transform:perspective(1100px) rotateY(24deg) translateX(16px);opacity:.2}}
+@keyframes flipInPrev{from{transform:perspective(1100px) rotateY(-18deg) translateX(-12px);opacity:.2}to{transform:perspective(1100px) rotateY(0deg);opacity:1}}
+#calGrid.flip-out-next{animation:flipOutNext .15s ease-in forwards;transform-origin:left center}
+#calGrid.flip-in-next{animation:flipInNext .2s ease-out;transform-origin:left center}
+#calGrid.flip-out-prev{animation:flipOutPrev .15s ease-in forwards;transform-origin:right center}
+#calGrid.flip-in-prev{animation:flipInPrev .2s ease-out;transform-origin:right center}
+@media (prefers-reduced-motion: reduce){#calGrid.flip-out-next,#calGrid.flip-in-next,#calGrid.flip-out-prev,#calGrid.flip-in-prev{animation:none}}
 .day{
   position:relative;min-height:88px;min-height:clamp(88px,11.8dvh,104px);border-radius:0;padding:4px 2px 3px;cursor:pointer;
   display:flex;flex-direction:column;align-items:center;background:#fff;border:none;border-right:1px solid #f0d7e2;border-bottom:1px solid #f0d7e2;
@@ -447,7 +456,7 @@ input,textarea{-webkit-user-select:text;user-select:text}
     </div>
   </div>
 
-  <footer class="note">データはこの端末の中だけに保存されます<br>ときどきバックアップ保存をしておくと安心です<br><span id="appVer">たかしのカレンダー v25</span></footer>
+  <footer class="note">データはこの端末の中だけに保存されます<br>ときどきバックアップ保存をしておくと安心です<br><span id="appVer">たかしのカレンダー v26</span></footer>
 </div>
 
 <!-- 設定画面 -->
@@ -724,8 +733,15 @@ async function loadWeather(){
   }catch(e){ /* オフライン等のときは天気を出さない */ }
 }
 const DOW = ["日","月","火","水","木","金","土"];
-const today = new Date(); today.setHours(0,0,0,0);
-const todayKey = dkey(today);
+let today = new Date(); today.setHours(0,0,0,0);
+let todayKey = dkey(today);
+/* 日付をまたいで開きっぱなしでも「今日」がずれないよう、現在の日付に合わせ直す */
+function refreshToday(){
+  const n = new Date(); n.setHours(0,0,0,0);
+  const k = dkey(n);
+  if(k !== todayKey){ today = n; todayKey = k; return true; }
+  return false;
+}
 let viewYear = today.getFullYear(), viewMonth = today.getMonth();
 let selectedKey = null;
 let lastDayKey = null;
@@ -1013,11 +1029,26 @@ function renderList(){
 $("listSearch").addEventListener("input", e=>{ listQuery = e.target.value; renderList(); });
 
 /* 日モーダル */
-function changeMonth(delta){
+function stepMonth(delta){
   viewMonth += delta;
   if(viewMonth<0){ viewMonth=11; viewYear--; }
   if(viewMonth>11){ viewMonth=0; viewYear++; }
   renderCalendar();
+}
+/* 月切り替えはページをめくるようにアニメーションさせる */
+let monthAnim = false;
+function changeMonth(delta){
+  const grid = $("calGrid");
+  if(monthAnim || !grid){ stepMonth(delta); return; }
+  monthAnim = true;
+  const dir = delta > 0 ? "next" : "prev";
+  grid.classList.add("flip-out-" + dir);
+  setTimeout(()=>{
+    stepMonth(delta);
+    grid.classList.remove("flip-out-" + dir);
+    grid.classList.add("flip-in-" + dir);
+    setTimeout(()=>{ grid.classList.remove("flip-in-" + dir); monthAnim = false; }, 210);
+  }, 150);
 }
 function changePeriod(delta){
   const mode = curView();
@@ -1031,6 +1062,7 @@ function changePeriod(delta){
 $("prevBtn").addEventListener("click", ()=>changePeriod(-1));
 $("nextBtn").addEventListener("click", ()=>changePeriod(1));
 $("todayBtn").addEventListener("click", ()=>{
+  refreshToday();
   viewYear = today.getFullYear(); viewMonth = today.getMonth();
   selKey = todayKey; lastDayKey = todayKey;
   if(curView() !== "month"){ renderAll(); return; }
@@ -1044,6 +1076,9 @@ $("todayBtn").addEventListener("click", ()=>{
     }
   });
 });
+/* アプリに戻ってきたとき、日付が変わっていたら表示を合わせる */
+document.addEventListener("visibilitychange", ()=>{ if(!document.hidden && refreshToday()) renderAll(); });
+window.addEventListener("pageshow", ()=>{ if(refreshToday()) renderAll(); });
 /* 左右スワイプで月移動 */
 let swipeX = null, swipeY = null;
 const calCardEl = document.querySelector(".cal-card");
@@ -1766,7 +1801,7 @@ function applyOwnerName(){
   const n = appName();
   $("appTitle").textContent = "📅 " + n;
   document.title = n;
-  $("appVer").textContent = n + " v25";
+  $("appVer").textContent = n + " v26";
   applyTheme(state.settings.theme || "blue");
 }
 const onInput = $("ownerNameInput");
