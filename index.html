@@ -349,6 +349,21 @@ textarea.ev-text{min-height:64px;resize:vertical}
 #addEventBtn:active{transform:scale(.94)}
 #stampTray{position:fixed;left:0;right:0;bottom:0;z-index:40;background:#fff;box-shadow:0 -4px 16px rgba(74,40,56,.10);padding:6px 8px calc(6px + env(safe-area-inset-bottom))}
 #stampTray .row{display:grid;grid-auto-flow:column;grid-template-rows:repeat(2,auto);gap:2px;overflow-x:auto;max-width:540px;margin:0 auto}
+#tplRow{display:none;gap:6px;overflow-x:auto;max-width:540px;margin:0 auto;padding:2px 2px 8px}
+#tplRow.on{display:flex}
+.tpl-chip{flex:none;display:inline-flex;align-items:center;gap:5px;border:1.5px solid #f0d7e2;background:#fff;border-radius:99px;padding:6px 11px;font-family:inherit;font-size:12.5px;font-weight:800;cursor:pointer;white-space:nowrap}
+.tpl-chip .dot{width:9px;height:9px;border-radius:50%;flex:none}
+.tpl-chip .tm{font-size:11px;color:var(--sub);font-weight:700}
+.tpl-chip:active{transform:scale(.95)}
+body.has-tpl .wrap{padding-bottom:234px}
+body.has-tpl #addEventBtn{bottom:180px}
+body.has-tpl #trashZone{bottom:calc(170px + env(safe-area-inset-bottom))}
+.tpl-reg-btn{width:100%;margin-top:10px;border:1.5px solid #e5c15c;background:#fff8e1;color:#8a6d1a;border-radius:99px;padding:11px;font-family:inherit;font-size:14px;font-weight:800;cursor:pointer}
+.tpl-item{display:flex;align-items:center;gap:8px;padding:8px 4px;border-bottom:1px dashed #f0d7e2}
+.tpl-item .dot{width:10px;height:10px;border-radius:50%;flex:none}
+.tpl-item .nm{font-weight:800;font-size:14px}
+.tpl-item .dt{font-size:12px;color:var(--sub)}
+.tpl-item .del{margin-left:auto;flex:none;border:none;background:#fdeef2;color:#d33f6e;border-radius:99px;padding:6px 12px;font-family:inherit;font-size:12.5px;font-weight:800;cursor:pointer}
 .tray-item{flex:none;width:56px;border:none;background:none;font-family:inherit;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:1px;padding:4px 0 2px;border-radius:12px;touch-action:pan-x}
 .tray-item .nm{font-size:9.5px;font-weight:800;color:var(--sub)}
 .tray-ic{display:inline-flex;width:34px;height:34px;align-items:center;justify-content:center}
@@ -456,7 +471,7 @@ input,textarea{-webkit-user-select:text;user-select:text}
     </div>
   </div>
 
-  <footer class="note">データはこの端末の中だけに保存されます<br>ときどきバックアップ保存をしておくと安心です<br><span id="appVer">たかしのカレンダー v26</span></footer>
+  <footer class="note">データはこの端末の中だけに保存されます<br>ときどきバックアップ保存をしておくと安心です<br><span id="appVer">たかしのカレンダー v27</span></footer>
 </div>
 
 <!-- 設定画面 -->
@@ -486,6 +501,9 @@ input,textarea{-webkit-user-select:text;user-select:text}
       <button id="gDiscBtn" style="display:none">連携を解除</button>
     </div>
     <p class="hint">一度「同期する」を押して連携すると、次からはアプリを開いたときに自動で同期を試みます（許可を更新できないときは、もう一度ボタンを押してください）。同期の範囲は、メインのカレンダーの予定（過去3か月〜1年先）です。アプリで作った予定はアプリの内容が優先、Googleで作った予定はGoogleの内容が優先されます。Googleの繰り返し予定は取り込みのみです。</p>
+    <div class="picker-lbl" style="margin-top:14px">⭐ 予定テンプレート</div>
+    <p class="hint">よく使う予定は、予定の編集画面で「⭐ この内容をテンプレートに登録」を押すと、ここに貯まります。登録したテンプレートはカレンダー下のトレイにボタンが出て、選んだ日にワンタップで入れられます（同じタイトルで登録すると上書きされます）。</p>
+    <div id="tplList"></div>
     <p class="hint" id="storageInfo"></p>
   </div>
     <div class="sheet-btns">
@@ -498,7 +516,7 @@ input,textarea{-webkit-user-select:text;user-select:text}
 <button id="addEventBtn" aria-label="予定を追加">＋</button>
 <div id="trashZone">🗑 ここに持ってくると削除</div>
 <div id="evMenu"><div class="evm-title" id="evMenuTitle"></div><button id="evMenuEdit">✏ 予定を編集</button><a id="evMenuMap" target="_blank" rel="noopener">📍 地図を見る</a><a id="evMenuGoogle" target="_blank" rel="noopener">📅 Googleカレンダーに追加</a><button id="evMenuDel" class="del">🗑 予定を削除</button></div>
-<div id="stampTray"><div class="row" id="trayRow"></div></div>
+<div id="stampTray"><div id="tplRow"></div><div class="row" id="trayRow"></div></div>
 
 <!-- 予定エディタ -->
 <div class="overlay" id="evOverlay" style="z-index:60">
@@ -537,6 +555,7 @@ input,textarea{-webkit-user-select:text;user-select:text}
       <button class="clear" id="evGoogleBtn" style="color:#3a7bd5">Googleに追加</button>
       <button class="close" id="evSaveBtn">保存する</button>
     </div>
+    <button class="tpl-reg-btn" id="evTplBtn">⭐ この内容をテンプレートに登録</button>
   </div>
 </div>
 
@@ -631,6 +650,7 @@ function normalize(s){
   s.settings = Object.assign({theme:"blue", weatherPlace:"広島市", view:"month", ownerName:"たかし"}, s.settings||{});
   s.events = s.events||[];
   s.todos = s.todos||[];
+  s.templates = s.templates||[];
   s.gTrash = s.gTrash||[];
   s.gSyncAt = s.gSyncAt||0;
   return s;
@@ -914,6 +934,7 @@ function renderAll(){
   else renderList();
   renderTodos();
   buildTray();
+  renderTemplates();
 }
 function setView(mode){
   state.settings.view = mode; save();
@@ -1287,6 +1308,29 @@ $("evSaveBtn").addEventListener("click", ()=>{
   }
   save(); renderAll(); closeEventEditor();
 });
+$("evTplBtn").addEventListener("click", ()=>{
+  const title = $("evTitle").value.trim();
+  if(!title){ toast("タイトルを入れてね ✏"); $("evTitle").focus(); return; }
+  const allDay = $("evAllDay").checked;
+  let stm = $("evStartTime").value || "09:00", etm = $("evEndTime").value || "10:00";
+  if(!allDay && etm <= stm){
+    const [h, m] = stm.split(":").map(Number);
+    etm = h >= 23 ? "23:59" : String(h + 1).padStart(2, "0") + ":" + String(m).padStart(2, "0");
+  }
+  const tpl = {id:"t"+Date.now().toString(36), title:title, icon:evIcon, color:evColor, allDay:allDay, st:allDay ? "" : stm, et:allDay ? "" : etm, place:$("evPlace").value.trim(), memo:$("evMemo").value.trim()};
+  state.templates = state.templates || [];
+  const ix = state.templates.findIndex(x=>x.title === title);
+  if(ix >= 0){
+    tpl.id = state.templates[ix].id;
+    state.templates[ix] = tpl;
+    toast("テンプレート「" + title + "」を上書きしました ⭐");
+  }else{
+    if(state.templates.length >= 12){ toast("テンプレートは12件までです"); return; }
+    state.templates.push(tpl);
+    toast("テンプレート「" + title + "」を登録しました ⭐");
+  }
+  save(); renderTemplates();
+});
 $("evDeleteBtn").addEventListener("click", ()=>{
   if(!evEditId) return;
   if(!confirm("この予定を削除しますか？")) return;
@@ -1449,6 +1493,55 @@ function applyTrayItem(it, key){
   selKey = key; lastDayKey = key;
   state.events.push({id:"e"+Date.now().toString(36)+Math.floor(Math.random()*999), title:it.name, icon:it.id, color:iconColor(it.id), start:key, end:key, place:"", memo:""});
   save(); renderAll();
+}
+/* 予定テンプレート：トレイのチップ列と設定の一覧を描く */
+function renderTemplates(){
+  const tpls = state.templates || [];
+  const row = $("tplRow");
+  if(row){
+    row.innerHTML = "";
+    row.classList.toggle("on", tpls.length > 0);
+    document.body.classList.toggle("has-tpl", tpls.length > 0);
+    tpls.forEach(t=>{
+      const b = document.createElement("button");
+      b.type = "button"; b.className = "tpl-chip";
+      b.innerHTML = '<span class="dot"></span><span class="nm"></span><span class="tm"></span>';
+      b.querySelector(".dot").style.background = t.color || "#f4528b";
+      b.querySelector(".nm").textContent = t.title;
+      b.querySelector(".tm").textContent = t.allDay === false ? (t.st || "09:00") + "〜" : "終日";
+      b.addEventListener("click", ()=>applyTemplate(t));
+      row.appendChild(b);
+    });
+  }
+  const list = $("tplList");
+  if(list){
+    list.innerHTML = "";
+    if(!tpls.length) list.innerHTML = '<p class="hint">まだ登録がありません。</p>';
+    tpls.forEach(t=>{
+      const div = document.createElement("div");
+      div.className = "tpl-item";
+      div.innerHTML = '<span class="dot"></span><span class="nm"></span><span class="dt"></span><button type="button" class="del">削除</button>';
+      div.querySelector(".dot").style.background = t.color || "#f4528b";
+      div.querySelector(".nm").textContent = t.title;
+      div.querySelector(".dt").textContent = (t.allDay === false ? (t.st || "09:00") + "〜" + (t.et || "10:00") : "終日") + (t.place ? "　📍" + t.place : "");
+      div.querySelector(".del").addEventListener("click", ()=>{
+        if(!confirm("テンプレート「" + t.title + "」を削除しますか？")) return;
+        state.templates = (state.templates || []).filter(x=>x.id !== t.id);
+        save(); renderTemplates();
+        toast("テンプレートを削除しました");
+      });
+      list.appendChild(div);
+    });
+  }
+}
+/* テンプレートを選んだ日にワンタップで入れる */
+function applyTemplate(t){
+  const key = selKey || todayKey;
+  selKey = key; lastDayKey = key;
+  const timed = t.allDay === false;
+  state.events.push({id:"e"+Date.now().toString(36)+Math.floor(Math.random()*999), title:t.title, icon:t.icon||"", color:t.color||"#f4528b", start:key, end:key, place:t.place||"", memo:t.memo||"", allDay:!timed, st:timed ? (t.st||"09:00") : "", et:timed ? (t.et||"10:00") : ""});
+  save(); renderAll();
+  toast("「" + t.title + "」を入れました ⭐");
 }
 function openEvMenu(e, chip){
   menuEvent = e;
@@ -1801,7 +1894,7 @@ function applyOwnerName(){
   const n = appName();
   $("appTitle").textContent = "📅 " + n;
   document.title = n;
-  $("appVer").textContent = n + " v26";
+  $("appVer").textContent = n + " v27";
   applyTheme(state.settings.theme || "blue");
 }
 const onInput = $("ownerNameInput");
