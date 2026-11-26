@@ -364,6 +364,14 @@ body.has-tpl #trashZone{bottom:calc(170px + env(safe-area-inset-bottom))}
 .tpl-item .nm{font-weight:800;font-size:14px}
 .tpl-item .dt{font-size:12px;color:var(--sub)}
 .tpl-item .del{margin-left:auto;flex:none;border:none;background:#fdeef2;color:#d33f6e;border-radius:99px;padding:6px 12px;font-family:inherit;font-size:12.5px;font-weight:800;cursor:pointer}
+.so-item{display:flex;align-items:center;gap:8px;padding:6px 4px;border-bottom:1px dashed #f0d7e2}
+.so-item .ic{display:inline-flex;width:26px;height:26px;flex:none}
+.so-item .ic svg{width:100%;height:100%}
+.so-item .nm{font-weight:800;font-size:14px}
+.so-item .mv{margin-left:auto;display:flex;gap:6px;flex:none}
+.so-item .mv button{border:none;background:#eef4fb;color:#3a6db5;border-radius:99px;width:38px;height:32px;font-size:15px;font-weight:800;cursor:pointer;font-family:inherit}
+.so-item .mv button:disabled{opacity:.3;cursor:default}
+.so-reset{margin-top:10px;border:2px solid var(--line);background:#fff;color:var(--sub);border-radius:99px;padding:8px 14px;font-family:inherit;font-size:12.5px;font-weight:800;cursor:pointer}
 .tray-item{flex:none;width:56px;border:none;background:none;font-family:inherit;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:1px;padding:4px 0 2px;border-radius:12px;touch-action:pan-x}
 .tray-item .nm{font-size:9.5px;font-weight:800;color:var(--sub)}
 .tray-ic{display:inline-flex;width:34px;height:34px;align-items:center;justify-content:center}
@@ -471,7 +479,7 @@ input,textarea{-webkit-user-select:text;user-select:text}
     </div>
   </div>
 
-  <footer class="note">データはこの端末の中だけに保存されます<br>ときどきバックアップ保存をしておくと安心です<br><span id="appVer">たかしのカレンダー v29</span></footer>
+  <footer class="note">データはこの端末の中だけに保存されます<br>ときどきバックアップ保存をしておくと安心です<br><span id="appVer">たかしのカレンダー v30</span></footer>
 </div>
 
 <!-- 設定画面 -->
@@ -504,6 +512,10 @@ input,textarea{-webkit-user-select:text;user-select:text}
     <div class="picker-lbl" style="margin-top:14px">⭐ 予定テンプレート</div>
     <p class="hint">よく使う予定は、予定の編集画面で「⭐ この内容をテンプレートに登録」を押すと、ここに貯まります。登録したテンプレートはカレンダー下のトレイにボタンが出て、選んだ日にワンタップで入れられます（同じタイトルで登録すると上書きされます）。</p>
     <div id="tplList"></div>
+    <div class="picker-lbl" style="margin-top:14px">🎨 アイコンの並び替え</div>
+    <p class="hint">よく使うアイコンを前の方へ動かせます。並びはカレンダー下のトレイと、予定を入れるときのアイコン選択に反映されます。</p>
+    <div id="stampOrderList"></div>
+    <button type="button" class="so-reset" id="stampOrderReset">並びを元に戻す</button>
     <p class="hint" id="storageInfo"></p>
   </div>
     <div class="sheet-btns">
@@ -651,6 +663,7 @@ function normalize(s){
   s.events = s.events||[];
   s.todos = s.todos||[];
   s.templates = s.templates||[];
+  s.stampOrder = s.stampOrder||[];
   s.gTrash = s.gTrash||[];
   s.gSyncAt = s.gSyncAt||0;
   return s;
@@ -966,6 +979,7 @@ function renderAll(){
   renderTodos();
   buildTray();
   renderTemplates();
+  renderStampOrder();
 }
 function setView(mode){
   state.settings.view = mode; save();
@@ -1204,6 +1218,11 @@ const STAMPS = [
   {id:"st-train", name:"電車", color:"#4a7dd4", svg:'<svg viewBox="0 0 48 48"><rect x="11" y="6" width="26" height="30" rx="6" fill="#4a7dd4"/><rect x="15.5" y="11" width="17" height="10" rx="2.5" fill="#dff1ff"/><rect x="15" y="26" width="5.5" height="5.5" rx="1.6" fill="#ffe9a8"/><rect x="27.5" y="26" width="5.5" height="5.5" rx="1.6" fill="#ffe9a8"/><path d="M17 36l-4 7M31 36l4 7" stroke="#4a4a68" stroke-width="2.6" stroke-linecap="round"/></svg>'}
 ];
 function stampOf(id){ return STAMPS.find(x=>x.id===id); }
+function orderedStamps(){
+  const ids = (state.stampOrder || []).filter(id=>STAMPS.some(s=>s.id===id));
+  STAMPS.forEach(s=>{ if(!ids.includes(s.id)) ids.push(s.id); });
+  return ids.map(id=>stampOf(id));
+}
 function esc(t){ return String(t||"").replace(/[&<>"']/g, m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[m])); }
 /* メモの中のURL・電話番号をタップできるリンクにする */
 function linkify(text){
@@ -1303,7 +1322,7 @@ function buildEvPickers(){
     ip.appendChild(b);
   };
   mk("", '<span style="font-size:11px;font-weight:800;color:var(--sub)">なし</span>', "アイコンなし");
-  STAMPS.forEach(st=>mk(st.id, st.svg, st.name));
+  orderedStamps().forEach(st=>mk(st.id, st.svg, st.name));
   const cp = $("evColorPicker"); cp.innerHTML = "";
   COLORS.forEach(col=>{
     const b = document.createElement("button");
@@ -1338,6 +1357,11 @@ $("evSaveBtn").addEventListener("click", ()=>{
     state.events.push({id:"e"+Date.now().toString(36)+Math.floor(Math.random()*999), title:title, icon:evIcon, color:evColor, start:st, end:en, place:place, memo:memo, allDay:allDay, st:allDay ? "" : stm, et:allDay ? "" : etm});
   }
   save(); renderAll(); closeEventEditor();
+});
+$("stampOrderReset").addEventListener("click", ()=>{
+  if(!confirm("アイコンの並びを元に戻しますか？")) return;
+  state.stampOrder = []; save(); renderStampOrder(); buildTray();
+  toast("アイコンの並びを元に戻しました");
 });
 $("evTplBtn").addEventListener("click", ()=>{
   const title = $("evTitle").value.trim();
@@ -1439,7 +1463,7 @@ $("icsBtn").addEventListener("click", ()=>{
 /* スタンプトレイ（ドラッグ＆ドロップ対応） */
 function buildTray(){
   const row = $("trayRow"); if(!row) return; row.innerHTML = "";
-  STAMPS.forEach(st=>{
+  orderedStamps().forEach(st=>{
     const b = document.createElement("button");
     b.type = "button"; b.className = "tray-item";
     b.innerHTML = '<span class="tray-ic">'+st.svg+'</span><span class="nm"></span>';
@@ -1573,6 +1597,28 @@ function applyTemplate(t){
   state.events.push({id:"e"+Date.now().toString(36)+Math.floor(Math.random()*999), title:t.title, icon:t.icon||"", color:t.color||"#f4528b", start:key, end:key, place:t.place||"", memo:t.memo||"", allDay:!timed, st:timed ? (t.st||"09:00") : "", et:timed ? (t.et||"10:00") : ""});
   save(); renderAll();
   toast("「" + t.title + "」を入れました ⭐");
+}
+function renderStampOrder(){
+  const list = $("stampOrderList"); if(!list) return;
+  const stamps = orderedStamps();
+  list.innerHTML = "";
+  stamps.forEach((st, i)=>{
+    const div = document.createElement("div");
+    div.className = "so-item";
+    div.innerHTML = '<span class="ic">'+st.svg+'</span><span class="nm"></span><span class="mv"><button type="button" class="up" aria-label="上へ">↑</button><button type="button" class="dn" aria-label="下へ">↓</button></span>';
+    div.querySelector(".nm").textContent = st.name;
+    const up = div.querySelector(".up"), dn = div.querySelector(".dn");
+    up.disabled = i === 0; dn.disabled = i === stamps.length - 1;
+    up.addEventListener("click", ()=>moveStampOrder(i, -1));
+    dn.addEventListener("click", ()=>moveStampOrder(i, 1));
+    list.appendChild(div);
+  });
+}
+function moveStampOrder(i, dir){
+  const ids = orderedStamps().map(s=>s.id);
+  const j = i + dir; if(j < 0 || j >= ids.length) return;
+  const t = ids[i]; ids[i] = ids[j]; ids[j] = t;
+  state.stampOrder = ids; save(); renderStampOrder(); buildTray();
 }
 function openEvMenu(e, chip){
   menuEvent = e;
@@ -1925,7 +1971,7 @@ function applyOwnerName(){
   const n = appName();
   $("appTitle").textContent = "📅 " + n;
   document.title = n;
-  $("appVer").textContent = n + " v29";
+  $("appVer").textContent = n + " v30";
   applyTheme(state.settings.theme || "blue");
 }
 const onInput = $("ownerNameInput");
