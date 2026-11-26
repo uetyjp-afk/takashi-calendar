@@ -231,6 +231,7 @@ footer.note{text-align:center;color:var(--sub);font-size:11px;margin-top:18px;fo
 .evt.cont-l{border-top-left-radius:0;border-bottom-left-radius:0;margin-left:-3px;padding-left:4px}
 .evt.cont-r{border-top-right-radius:0;border-bottom-right-radius:0;margin-right:-3px}
 .evt-more{font-size:9px;color:var(--sub);font-weight:800;padding-left:2px}
+.evt.ph{background:transparent;cursor:default}
 .day.drop-hl{outline:3px solid var(--pink-deep);outline-offset:-2px}
 /* 日シートの予定行 */
 .ev-row{display:flex;align-items:center;gap:8px;background:var(--pink-bg);border-radius:12px;padding:8px 10px;margin-bottom:6px;cursor:pointer}
@@ -471,7 +472,7 @@ input,textarea{-webkit-user-select:text;user-select:text}
     </div>
   </div>
 
-  <footer class="note">データはこの端末の中だけに保存されます<br>ときどきバックアップ保存をしておくと安心です<br><span id="appVer">たかしのカレンダー v27</span></footer>
+  <footer class="note">データはこの端末の中だけに保存されます<br>ときどきバックアップ保存をしておくと安心です<br><span id="appVer">たかしのカレンダー v28</span></footer>
 </div>
 
 <!-- 設定画面 -->
@@ -774,8 +775,29 @@ function renderCalendar(){
   const first = new Date(viewYear, viewMonth, 1);
   const startOffset = first.getDay();
   const startDate = addDays(first, -startOffset);
-  for(let i=0;i<42;i++){
-    const d = addDays(startDate, i);
+  for(let w=0; w<6; w++){
+    const weekStart = addDays(startDate, w*7);
+    const weekStartK = dkey(weekStart), weekEndK = dkey(addDays(weekStart, 6));
+    /* 週の中で帯の段（レーン）を固定する：開始日が早く、長い予定ほど上の段。
+       日ごとに並び替えないので、続く予定が途中で段ずれせず一本の帯に見える */
+    const weekEvs = (state.events||[]).filter(e=>e.start<=weekEndK && e.end>=weekStartK)
+      .sort((a,b)=>{
+        if(a.start!==b.start) return a.start<b.start ? -1 : 1;
+        if(a.end!==b.end) return a.end>b.end ? -1 : 1;
+        const ka = a.allDay===false ? "1" : "0", kb = b.allDay===false ? "1" : "0";
+        if(ka!==kb) return ka<kb ? -1 : 1;
+        return (a.title||"") < (b.title||"") ? -1 : 1;
+      });
+    const laneEnd = [], laneOf = new Map();
+    weekEvs.forEach(e=>{
+      const cs = e.start < weekStartK ? weekStartK : e.start;
+      let li = laneEnd.findIndex(end=>end < cs);
+      if(li < 0){ li = laneEnd.length; laneEnd.push(e.end); }
+      else laneEnd[li] = e.end;
+      laneOf.set(e, li);
+    });
+    for(let di=0; di<7; di++){
+    const d = addDays(weekStart, di);
     const k = dkey(d);
     const cell = document.createElement("div");
     cell.className = "day";
@@ -785,9 +807,17 @@ function renderCalendar(){
     if(k===todayKey) cell.classList.add("today");
     if(holidayName(k)) cell.classList.add("hol");
     if(k===(selKey||todayKey)) cell.classList.add("sel");
-    const evs = eventsOn(k);
+    const dayEvs = weekEvs.filter(e=>e.start<=k && k<=e.end);
+    const byLane = new Map();
+    dayEvs.forEach(e=>byLane.set(laneOf.get(e), e));
+    const visLanes = [...byLane.keys()].filter(l=>l<4);
+    const maxLane = visLanes.length ? Math.max.apply(null, visLanes) : -1;
     let evHtml = "";
-    evs.slice(0,4).forEach(e=>{
+    const chipEvs = [];
+    for(let l=0; l<=maxLane; l++){
+      const e = byLane.get(l);
+      if(!e){ evHtml += '<div class="evt ph"></div>'; chipEvs.push(null); continue; }
+      chipEvs.push(e);
       const col = e.color || "#f4528b";
       const showT = (k===e.start || d.getDay()===0);
       const long = (showT && k<e.end) ? " long" : "";
@@ -805,8 +835,9 @@ function renderCalendar(){
         tt = '<span class="evt-tt"></span>';
       }
       evHtml += '<div class="evt'+(k>e.start?" cont-l":"")+(k<e.end?" cont-r":"")+long+'" style="background:'+col+';color:#fff">' + tt + '</div>';
-    });
-    if(evs.length>4) evHtml += '<div class="evt-more">+'+(evs.length-4)+'件</div>';
+    }
+    const hidden = dayEvs.filter(e=>laneOf.get(e)>=4).length;
+    if(hidden) evHtml += '<div class="evt-more">+'+hidden+'件</div>';
     cell.dataset.key = k;
     const wxd = weatherData && weatherData[k];
     const hasTodo = (state.todos||[]).some(t=>t.due===k && !t.done);
@@ -814,7 +845,7 @@ function renderCalendar(){
       + (hasTodo ? '<span class="todo-mk">✓</span>' : '')
       + '<div class="dnum">'+d.getDate()+'</div>'
       + (evHtml ? '<div class="evts">'+evHtml+'</div>' : '');
-    cell.querySelectorAll(".evt").forEach((chip, idx)=>{ const e2 = evs[idx]; if(e2) attachChipDrag(chip, e2, k); });
+    cell.querySelectorAll(".evt").forEach((chip, idx)=>{ const e2 = chipEvs[idx]; if(e2) attachChipDrag(chip, e2, k); });
     cell.addEventListener("click", ()=>{
       if(Date.now()-suppressCellClick<400) return;
       selKey = k; lastDayKey = k; renderCalendar();
@@ -828,6 +859,7 @@ function renderCalendar(){
       });
     });
     grid.appendChild(cell);
+    }
   }
   renderDayDetail();
 }
@@ -1894,7 +1926,7 @@ function applyOwnerName(){
   const n = appName();
   $("appTitle").textContent = "📅 " + n;
   document.title = n;
-  $("appVer").textContent = n + " v27";
+  $("appVer").textContent = n + " v28";
   applyTheme(state.settings.theme || "blue");
 }
 const onInput = $("ownerNameInput");
