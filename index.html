@@ -27,9 +27,9 @@ body{
 }
 .wrap{max-width:540px;margin:0 auto;padding:6px 3px 196px}
 header.app{text-align:center;padding:2px 0 0;position:relative}
-header.app h1{font-size:16.5px;margin:0;font-weight:800;letter-spacing:.02em}
+header.app h1{font-size:13.5px;margin:0;font-weight:800;letter-spacing:.02em}
 header.app h1 .heart{color:var(--pink-deep)}
-header.app p{margin:0;color:var(--sub);font-size:10.5px;font-weight:500}
+header.app p{margin:0;color:var(--sub);font-size:9.5px;font-weight:500}
 
 /* 有給カード（一番目立つ） */
 .leave-card{
@@ -51,20 +51,20 @@ header.app p{margin:0;color:var(--sub);font-size:10.5px;font-weight:500}
 .leave-card.low .leave-warn,.leave-card.empty .leave-warn{display:block}
 
 /* 月ナビ */
-.month-nav{display:flex;align-items:center;justify-content:space-between;margin:8px 2px 5px}
-.month-nav h2{font-size:18px;margin:0;font-weight:800}
+.month-nav{display:flex;align-items:center;justify-content:space-between;margin:4px 2px 3px}
+.month-nav h2{font-size:15.5px;margin:0;font-weight:800}
 .nav-btn{
-  border:none;background:var(--card);color:var(--pink-deep);width:40px;height:40px;border-radius:50%;
-  font-size:19px;font-weight:800;box-shadow:var(--shadow);cursor:pointer;
+  border:none;background:var(--card);color:var(--pink-deep);width:34px;height:34px;border-radius:50%;
+  font-size:16px;font-weight:800;box-shadow:var(--shadow);cursor:pointer;
 }
 .today-btn{
   border:none;background:var(--pink-soft);color:var(--pink-deep);border-radius:99px;
-  padding:9px 15px;font-family:inherit;font-size:13px;font-weight:800;cursor:pointer;
+  padding:6px 11px;font-family:inherit;font-size:12px;font-weight:800;cursor:pointer;
 }
 
 /* カレンダー */
 .cal-card{background:var(--card);border-radius:18px;box-shadow:var(--shadow);padding:6px 0 8px;touch-action:pan-y}
-.week{display:grid;grid-template-columns:repeat(7,1fr);text-align:center;font-size:12px;font-weight:800;color:var(--sub);padding:1px 0 4px;position:sticky;top:0;background:var(--card);z-index:6}
+.week{display:grid;grid-template-columns:repeat(7,1fr);text-align:center;font-size:11px;font-weight:800;color:var(--sub);padding:0 0 3px;position:sticky;top:0;background:var(--card);z-index:6}
 .week div:nth-child(1){color:var(--sun)} .week div:nth-child(7){color:var(--sat)}
 .grid{display:grid;grid-template-columns:repeat(7,1fr);gap:0;border-top:1px solid #f0d7e2;border-left:1px solid #f0d7e2;overflow:hidden}
 @keyframes flipOutNext{from{transform:perspective(1100px) rotateY(0deg);opacity:1}to{transform:perspective(1100px) rotateY(-24deg) translateX(-16px);opacity:.2}}
@@ -82,11 +82,11 @@ header.app p{margin:0;color:var(--sub);font-size:10.5px;font-weight:500}
   min-width:0;
 }
 .day:active{transform:scale(.96)}
-.day .dnum{font-size:16px;font-weight:800;line-height:1.15}
+.day .dnum{font-size:13.5px;font-weight:800;line-height:1.15}
 .day.sun .dnum{color:var(--sun)} .day.sat .dnum{color:var(--sat)} .day.hol .dnum{color:var(--sun)}
 .day.other{opacity:.45;background:#faf5f6}
 .day.today{box-shadow:inset 0 0 0 2px var(--pink)}
-.day.today .dnum{background:var(--pink);color:#fff;border-radius:50%;width:22px;height:22px;display:flex;align-items:center;justify-content:center}
+.day.today .dnum{background:var(--pink);color:#fff;border-radius:50%;width:19px;height:19px;display:flex;align-items:center;justify-content:center}
 .day.period{background:var(--pink-soft)}
 .day.predicted{background:#fff;border:1.5px dashed #ffb3c9}
 .day .marks{display:flex;flex-wrap:wrap;justify-content:center;gap:1px 3px;margin-top:1px;min-height:21px}
@@ -219,12 +219,11 @@ footer.note{text-align:center;color:var(--sub);font-size:11px;margin-top:18px;fo
 .auto-note{text-align:center;font-size:11px;color:var(--sub);margin-top:9px;font-weight:500}
 
 /* 予定チップ */
-.day .wx-bg{position:absolute;right:3px;bottom:3px;font-size:19px;line-height:1;opacity:.25;z-index:0;pointer-events:none}
+.day .wx-bg{position:absolute;right:3px;bottom:3px;font-size:15px;line-height:1;opacity:.22;z-index:0;pointer-events:none}
 .day .evts{display:flex;flex-direction:column;gap:2px;width:100%;margin-top:1px}
 .evt{display:flex;align-items:center;gap:1px;touch-action:none;cursor:grab;font-size:10px;font-weight:800;line-height:1.3;padding:1px 1px;border-radius:4px;max-width:none;min-width:0;box-sizing:border-box;margin:0 -3px;position:relative;z-index:2;min-height:17px}
 .evt-tt{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0;flex:1}
 .evt.long{z-index:4}
-.evt.long .evt-tt{position:absolute;left:3px;top:50%;transform:translateY(-50%);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:none}
 .evt-ic{display:inline-flex;width:9.5px;height:9.5px;flex:none}
 .evt-ic svg{width:100%;height:100%}
 .evt-ic span{font-size:10px !important}
@@ -277,8 +276,8 @@ footer.note{text-align:center;color:var(--sub);font-size:11px;margin-top:18px;fo
 .todo-none{font-size:12.5px;color:var(--sub);font-weight:500;padding:2px 0 4px}
 
 /* 表示切り替え（月・週・日・リスト） */
-.view-switch{display:flex;gap:6px;margin:2px 2px 8px}
-.view-switch button{flex:1;padding:7px 0;border-radius:999px;border:2px solid var(--line);background:#fff;font-weight:800;font-size:13px;color:var(--sub);cursor:pointer;font-family:inherit}
+.view-switch{display:flex;gap:5px;margin:0 2px 6px}
+.view-switch button{flex:1;padding:5px 0;border-radius:999px;border:2px solid var(--line);background:#fff;font-weight:800;font-size:12px;color:var(--sub);cursor:pointer;font-family:inherit}
 .view-switch button.on{background:var(--pink-deep);border-color:var(--pink-deep);color:#fff}
 .month-nav.nav-hidden .nav-btn{visibility:hidden}
 #weekCard{overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none;touch-action:pan-x pan-y}
@@ -375,7 +374,7 @@ body.has-tpl #trashZone{bottom:calc(170px + env(safe-area-inset-bottom))}
 #trashZone{position:fixed;left:12px;right:12px;bottom:calc(132px + env(safe-area-inset-bottom));z-index:45;display:none;align-items:center;justify-content:center;height:60px;border:2.5px dashed #e5395f;border-radius:16px;background:rgba(255,240,243,.97);color:#e5395f;font-weight:800;font-size:15px}
 #trashZone.on{display:flex}
 #trashZone.hot{background:#e5395f;color:#fff;border-style:solid}
-#settingsBtn{position:absolute;right:2px;top:0;width:44px;height:44px;border:none;border-radius:50%;background:#fff;box-shadow:var(--shadow);cursor:pointer;padding:9px}
+#settingsBtn{position:absolute;right:2px;top:0;width:36px;height:36px;border:none;border-radius:50%;background:#fff;box-shadow:var(--shadow);cursor:pointer;padding:7px}
 #settingsBtn svg{width:100%;height:100%;display:block}
 #settingsBtn:active{transform:scale(.93)}
 #settingsOverlay .section{box-shadow:none;border:2px solid var(--line)}
@@ -472,7 +471,7 @@ input,textarea{-webkit-user-select:text;user-select:text}
     </div>
   </div>
 
-  <footer class="note">データはこの端末の中だけに保存されます<br>ときどきバックアップ保存をしておくと安心です<br><span id="appVer">たかしのカレンダー v28</span></footer>
+  <footer class="note">データはこの端末の中だけに保存されます<br>ときどきバックアップ保存をしておくと安心です<br><span id="appVer">たかしのカレンダー v29</span></footer>
 </div>
 
 <!-- 設定画面 -->
@@ -822,19 +821,19 @@ function renderCalendar(){
       const showT = (k===e.start || d.getDay()===0);
       const long = (showT && k<e.end) ? " long" : "";
       let tt = "";
+      let chipW = "";
       if(showT){
+        tt = '<span class="evt-tt">' + esc(e.title) + '</span>';
         if(long){
           const rowEndK = dkey(addDays(d, 6 - d.getDay()));
           const spanEndK = e.end < rowEndK ? e.end : rowEndK;
           const span = Math.round((parseKey(spanEndK) - d) / 86400000) + 1;
-          tt = '<span class="evt-tt" style="width:calc(' + span + '00% + ' + ((span - 1) * 6) + 'px)">' + esc(e.title) + '</span>';
-        }else{
-          tt = '<span class="evt-tt">' + esc(e.title) + '</span>';
+          chipW = 'width:calc(' + span + '00% + ' + ((span - 1) * 6) + 'px);';
         }
       }else{
         tt = '<span class="evt-tt"></span>';
       }
-      evHtml += '<div class="evt'+(k>e.start?" cont-l":"")+(k<e.end?" cont-r":"")+long+'" style="background:'+col+';color:#fff">' + tt + '</div>';
+      evHtml += '<div class="evt'+(k>e.start?" cont-l":"")+(k<e.end?" cont-r":"")+long+'" style="background:'+col+';color:#fff;' + chipW + '">' + tt + '</div>';
     }
     const hidden = dayEvs.filter(e=>laneOf.get(e)>=4).length;
     if(hidden) evHtml += '<div class="evt-more">+'+hidden+'件</div>';
@@ -1926,7 +1925,7 @@ function applyOwnerName(){
   const n = appName();
   $("appTitle").textContent = "📅 " + n;
   document.title = n;
-  $("appVer").textContent = n + " v28";
+  $("appVer").textContent = n + " v29";
   applyTheme(state.settings.theme || "blue");
 }
 const onInput = $("ownerNameInput");
